@@ -4,16 +4,48 @@
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "🚀 Installing Memcord..." -ForegroundColor Cyan
+$REPO_URL = "https://github.com/ukkit/memcord.git"
 
-# Clone the repository
-Write-Host "📦 Cloning repository..." -ForegroundColor Yellow
-git clone https://github.com/ukkit/memcord.git
-Set-Location memcord
+# Detect whether we're updating an existing install or doing a fresh one.
+$isExistingRepo = (Test-Path "pyproject.toml") -and (Select-String -Path "pyproject.toml" -Pattern '^name = "memcord"' -Quiet) -and (Test-Path ".git")
+if ($isExistingRepo) {
+    $MODE = "update"
+    $MEMCORD_PATH = (Get-Location).Path
+} elseif (Test-Path "memcord/.git") {
+    $MODE = "update"
+    Set-Location memcord
+    $MEMCORD_PATH = (Get-Location).Path
+} else {
+    $MODE = "install"
+}
 
-# Get the absolute path
-$MEMCORD_PATH = (Get-Location).Path
-Write-Host "📍 Installation path: $MEMCORD_PATH" -ForegroundColor Green
+if ($MODE -eq "update") {
+    Write-Host "🔄 Updating existing Memcord installation..." -ForegroundColor Cyan
+    Write-Host "📍 Installation path: $MEMCORD_PATH" -ForegroundColor Green
+
+    Write-Host "🔍 Checking for local modifications..." -ForegroundColor Yellow
+    $dirty = git status --porcelain --untracked-files=no
+    if ($dirty) {
+        Write-Host "❌ Local changes detected in tracked files - update aborted to avoid overwriting them." -ForegroundColor Red
+        Write-Host "   Review with: git -C `"$MEMCORD_PATH`" status" -ForegroundColor Gray
+        Write-Host "   Commit or stash your changes, then re-run this installer." -ForegroundColor Gray
+        exit 1
+    }
+
+    Write-Host "⬇️  Pulling latest changes..." -ForegroundColor Yellow
+    git pull --ff-only
+} else {
+    Write-Host "🚀 Installing Memcord..." -ForegroundColor Cyan
+
+    # Clone the repository
+    Write-Host "📦 Cloning repository..." -ForegroundColor Yellow
+    git clone $REPO_URL
+    Set-Location memcord
+
+    # Get the absolute path
+    $MEMCORD_PATH = (Get-Location).Path
+    Write-Host "📍 Installation path: $MEMCORD_PATH" -ForegroundColor Green
+}
 
 # Data protection check
 Write-Host "🛡️  Checking for existing memory data..." -ForegroundColor Yellow
@@ -59,17 +91,21 @@ try {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 }
 
-# Create virtual environment
-Write-Host "🐍 Setting up Python virtual environment..." -ForegroundColor Yellow
-uv venv
+# Create (or reuse) the virtual environment
+if (Test-Path ".venv") {
+    Write-Host "🐍 Using existing virtual environment..." -ForegroundColor Yellow
+} else {
+    Write-Host "🐍 Setting up Python virtual environment..." -ForegroundColor Yellow
+    uv venv
+}
 
 # Activate virtual environment
 Write-Host "📋 Activating virtual environment..." -ForegroundColor Yellow
 & .\.venv\Scripts\Activate.ps1
 
-# Install the package
+# Install/upgrade the package
 Write-Host "📋 Installing memcord package..." -ForegroundColor Yellow
-uv pip install -e .
+uv pip install -e . --upgrade
 
 # Generate MCP configuration files using Python script
 Write-Host "📝 Generating MCP configuration files..." -ForegroundColor Yellow
@@ -110,13 +146,22 @@ if (Test-Path "README.md") {
 }
 
 Write-Host ""
-Write-Host "✨ Installation complete!" -ForegroundColor Green
+if ($MODE -eq "update") {
+    Write-Host "✨ Update complete!" -ForegroundColor Green
+} else {
+    Write-Host "✨ Installation complete!" -ForegroundColor Green
+}
 Write-Host "📂 Memcord installed at: $MEMCORD_PATH" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "🔧 Next steps:" -ForegroundColor Yellow
-Write-Host "   1. Activate the virtual environment: & $MEMCORD_PATH\.venv\Scripts\Activate.ps1" -ForegroundColor Gray
-Write-Host "   2. Restart Claude Desktop to load the MCP server" -ForegroundColor Gray
-Write-Host "   3. In Claude Code, run: claude mcp list" -ForegroundColor Gray
+if ($MODE -eq "update") {
+    Write-Host "   1. Restart Claude Desktop / your MCP client to load the updated server" -ForegroundColor Gray
+    Write-Host "   2. In Claude Code, run: claude mcp list" -ForegroundColor Gray
+} else {
+    Write-Host "   1. Activate the virtual environment: & $MEMCORD_PATH\.venv\Scripts\Activate.ps1" -ForegroundColor Gray
+    Write-Host "   2. Restart Claude Desktop to load the MCP server" -ForegroundColor Gray
+    Write-Host "   3. In Claude Code, run: claude mcp list" -ForegroundColor Gray
+}
 Write-Host ""
 Write-Host "📚 Configuration files generated:" -ForegroundColor Yellow
 Write-Host "   - .mcp.json (Claude Code)" -ForegroundColor Gray

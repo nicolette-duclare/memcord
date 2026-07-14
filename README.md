@@ -1,6 +1,6 @@
 <div align="center">
   <img src="assets/image/memcord_1024.png" width="256">
-  <h3>MEMCORD v4.2.0 (mcp server)</h3>
+  <h3>MEMCORD v4.3.0 (mcp server)</h3>
   <p>This privacy-first, self-hosted MCP server helps you organize chat history, summarize messages, search across past chats with AI — and keeps everything secure and fully under your control.</p>
 </div>
 
@@ -18,7 +18,7 @@
 <h2 align="center">Never Lose Context Again</h2>
 <p align="center"><em>Transform your Claude conversations into a searchable, organized knowledge base that grows with you</em></p>
 
-> **[What's new in v4.2.0](docs/versions.md#v420---storage-links-registry)** — Per-slot `custom_storage_path` now shares the slot's full settings (not just data) across devices via a local storage-links registry.
+> **[What's new in v4.3.0](docs/versions.md#v430---mcp-compliance-and-self-updating-installers)** — `install.sh`/`install.ps1` now update an existing installation in place, and all MCP tools carry spec-recommended `title` fields.
 
 ## Table of Contents
 
@@ -78,15 +78,38 @@ This will:
 
 ## Keeping Memcord Updated
 
+Re-run the same installer command from [Quick Start](#quick-start) from the same folder where memcord is installed — it detects an existing installation and updates it in place instead of cloning a fresh copy:
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://github.com/ukkit/memcord/raw/main/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://github.com/ukkit/memcord/raw/main/install.ps1 | iex
+```
+
+This will:
+- ✅ Pull the latest changes (fast-forward only — aborts safely if you have local edits)
+- ✅ Reuse your existing virtual environment and upgrade dependencies
+- ✅ Regenerate MCP configuration files
+- ✅ Leave your memory data (`memory_slots/`) and generated configs untouched
+
+<details>
+<summary>Manual update</summary>
+
 ```bash
 cd /path/to/memcord
 git pull
-uv pip install -e .
+uv pip install -e . --upgrade
 uv run python scripts/generate-config.py  # Regenerate configs
 
 # Optional: Enable auto-save hooks (new in v2.5.0)
 uv run python scripts/generate-config.py --install-hooks
 ```
+
+</details>
 
 The `--install-hooks` flag is idempotent — it merges into existing `.claude/settings.json` without overwriting other settings or hooks.
 
@@ -114,31 +137,18 @@ memcord_init "my_project_name"
 /memcord-save-progress  # Summarizes and saves
 ```
 
-### Saving, Searching & Querying (Direct Tool Calls)
+### Searching & Querying (Direct Tool Calls)
 
 ```bash
-memcord_name "project_meeting"          # Create or select a slot (outside a bound project)
-memcord_save "Our discussion about..."  # Save exact text
-memcord_save_progress                   # Save a compressed summary
-memcord_read                            # Read the slot
-
 memcord_select_entry "2 hours ago"    # Jump to a point in the timeline
 memcord_list                          # List all slots
 memcord_search "API design"           # Full-text search
 memcord_query "What did we decide?"   # Natural language query
 
-memcord_zero                          # Privacy mode — nothing gets saved
 ```
 
 See **[Complete Tools Reference](docs/tools-reference.md)** for all 23 tools with full parameters and examples.
 
-### Enable Auto-Save (Optional)
-
-```bash
-uv run python scripts/generate-config.py --install-hooks
-```
-
-Automatically saves conversation progress before context compaction and on session end. See [config-templates/README.md](config-templates/README.md#auto-save-hooks-optional) for details.
 
 ### How Auto-Detection Works
 
@@ -225,9 +235,3 @@ If you find this project helpful, consider:
 ---
 
 **MIT License** - see LICENSE file for details.
-
----
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=ukkit/memcord&type=date&legend=top-left)](https://www.star-history.com/#ukkit/memcord&type=date&legend=top-left)

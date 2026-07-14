@@ -2,16 +2,46 @@
 
 set -e
 
-echo "🚀 Installing Memcord..."
+REPO_URL="https://github.com/ukkit/memcord.git"
 
-# Clone the repository
-echo "📦 Cloning repository..."
-git clone https://github.com/ukkit/memcord.git
-cd memcord
+# Detect whether we're updating an existing install or doing a fresh one.
+if [ -f "pyproject.toml" ] && grep -q '^name = "memcord"' pyproject.toml && [ -d ".git" ]; then
+    MODE="update"
+    MEMCORD_PATH=$(pwd)
+elif [ -d "memcord/.git" ]; then
+    MODE="update"
+    cd memcord
+    MEMCORD_PATH=$(pwd)
+else
+    MODE="install"
+fi
 
-# Get the absolute path
-MEMCORD_PATH=$(pwd)
-echo "📍 Installation path: $MEMCORD_PATH"
+if [ "$MODE" = "update" ]; then
+    echo "🔄 Updating existing Memcord installation..."
+    echo "📍 Installation path: $MEMCORD_PATH"
+
+    echo "🔍 Checking for local modifications..."
+    if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+        echo "❌ Local changes detected in tracked files - update aborted to avoid overwriting them."
+        echo "   Review with: git -C \"$MEMCORD_PATH\" status"
+        echo "   Commit or stash your changes, then re-run this installer."
+        exit 1
+    fi
+
+    echo "⬇️  Pulling latest changes..."
+    git pull --ff-only
+else
+    echo "🚀 Installing Memcord..."
+
+    # Clone the repository
+    echo "📦 Cloning repository..."
+    git clone "$REPO_URL"
+    cd memcord
+
+    # Get the absolute path
+    MEMCORD_PATH=$(pwd)
+    echo "📍 Installation path: $MEMCORD_PATH"
+fi
 
 # Data protection check
 echo "🛡️  Checking for existing memory data..."
@@ -40,14 +70,18 @@ else
     echo "✅ No existing memory data found - proceeding safely."
 fi
 
-# Create and activate virtual environment
-echo "🐍 Setting up Python virtual environment..."
-uv venv
+# Create (or reuse) the virtual environment
+if [ -d ".venv" ]; then
+    echo "🐍 Using existing virtual environment..."
+else
+    echo "🐍 Setting up Python virtual environment..."
+    uv venv
+fi
 source .venv/bin/activate
 
-# Install the package
+# Install/upgrade the package
 echo "📋 Installing memcord package..."
-uv pip install -e .
+uv pip install -e . --upgrade
 
 # Generate MCP configuration files using Python script
 echo "📝 Generating MCP configuration files..."
@@ -78,13 +112,22 @@ else
 fi
 
 echo ""
-echo "✨ Installation complete!"
+if [ "$MODE" = "update" ]; then
+    echo "✨ Update complete!"
+else
+    echo "✨ Installation complete!"
+fi
 echo "📂 Memcord installed at: $MEMCORD_PATH"
 echo ""
 echo "🔧 Next steps:"
-echo "   1. Activate the virtual environment: source $MEMCORD_PATH/.venv/bin/activate"
-echo "   2. Restart Claude Desktop to load the MCP server"
-echo "   3. In Claude Code, run: claude mcp list"
+if [ "$MODE" = "update" ]; then
+    echo "   1. Restart Claude Desktop / your MCP client to load the updated server"
+    echo "   2. In Claude Code, run: claude mcp list"
+else
+    echo "   1. Activate the virtual environment: source $MEMCORD_PATH/.venv/bin/activate"
+    echo "   2. Restart Claude Desktop to load the MCP server"
+    echo "   3. In Claude Code, run: claude mcp list"
+fi
 echo ""
 echo "📚 Configuration files generated:"
 echo "   - .mcp.json (Claude Code)"

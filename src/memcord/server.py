@@ -627,6 +627,7 @@ class ChatMemoryServer:
             # Core Tools
             Tool(
                 name="memcord_name",
+                title="Create or Select Memory Slot",
                 description="Set or create a named memory slot",
                 inputSchema={
                     "type": "object",
@@ -638,6 +639,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_use",
+                title="Activate Memory Slot",
                 description="Activate an existing memory slot (does not create new slots)",
                 inputSchema={
                     "type": "object",
@@ -652,6 +654,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_save",
+                title="Save to Memory Slot",
                 description="Save chat text to memory slot (overwrites existing content)",
                 inputSchema={
                     "type": "object",
@@ -667,6 +670,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_auto_save",
+                title="Auto-Save to Memory",
                 description=(
                     "Save chat text to memory without requiring prior slot setup. "
                     "Auto-creates the default slot on first use. "
@@ -684,6 +688,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_read",
+                title="Read Memory Slot",
                 description="Retrieve full content from memory slot",
                 inputSchema={
                     "type": "object",
@@ -697,6 +702,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_save_progress",
+                title="Save Progress Summary",
                 description="Generate summary and append to memory slot",
                 inputSchema={
                     "type": "object",
@@ -719,6 +725,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_configure",
+                title="Configure Slot Settings",
                 description=(
                     "Get or set the per-slot summarizer configuration. "
                     "action='get' returns current config; action='set' updates a key; "
@@ -754,11 +761,13 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_list",
+                title="List Memory Slots",
                 description="List all available memory slots with metadata",
                 inputSchema={"type": "object", "additionalProperties": False},
             ),
             Tool(
                 name="memcord_ping",
+                title="Health Check",
                 description=(
                     "Lightweight health check for server warm-up. "
                     "Returns minimal response to confirm server is running."
@@ -768,6 +777,7 @@ class ChatMemoryServer:
             # Search & Intelligence Tools
             Tool(
                 name="memcord_search",
+                title="Search Memory Slots",
                 description="Search across all memory slots with advanced filtering",
                 inputSchema={
                     "type": "object",
@@ -806,6 +816,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_query",
+                title="Query Memory (Natural Language)",
                 description="Ask natural language questions about your memory contents",
                 inputSchema={
                     "type": "object",
@@ -824,11 +835,13 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_zero",
+                title="Activate Zero Mode",
                 description="Activate zero mode - no memory will be saved until switched to another slot",
                 inputSchema={"type": "object", "additionalProperties": False},
             ),
             Tool(
                 name="memcord_close",
+                title="Close Memory Slot",
                 description=(
                     "Deactivate the current memory slot. "
                     "Use before ending a session to prevent cross-project contamination."
@@ -837,6 +850,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_select_entry",
+                title="Select Memory Entry",
                 description=(
                     "Select and retrieve a specific memory entry by timestamp, "
                     "relative time, or index within a memory slot"
@@ -875,6 +889,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_merge",
+                title="Merge Memory Slots",
                 description="Merge multiple memory slots into one with duplicate detection",
                 inputSchema={
                     "type": "object",
@@ -911,6 +926,7 @@ class ChatMemoryServer:
             # Status & Monitoring Tools
             Tool(
                 name="memcord_status",
+                title="System Status",
                 description="Get current system health status and overview",
                 inputSchema={
                     "type": "object",
@@ -925,6 +941,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_metrics",
+                title="Performance Metrics",
                 description="Get performance metrics and system statistics",
                 inputSchema={
                     "type": "object",
@@ -945,6 +962,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_logs",
+                title="Operation Logs",
                 description="Get operation execution logs and history",
                 inputSchema={
                     "type": "object",
@@ -974,6 +992,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_diagnostics",
+                title="Run Diagnostics",
                 description="Run comprehensive system diagnostics and generate health report",
                 inputSchema={
                     "type": "object",
@@ -990,6 +1009,7 @@ class ChatMemoryServer:
             # Project Binding Tools
             Tool(
                 name="memcord_init",
+                title="Bind Project to Memory Slot",
                 description=(
                     "Initialize memcord for a project directory by binding it to a memory slot. "
                     "Creates .memcord file in the project."
@@ -1011,6 +1031,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_unbind",
+                title="Unbind Project",
                 description="Remove .memcord binding from a project directory",
                 inputSchema={
                     "type": "object",
@@ -1032,6 +1053,7 @@ class ChatMemoryServer:
             # Organization Tools
             Tool(
                 name="memcord_tag",
+                title="Manage Slot Tags",
                 description="Add or remove tags from a memory slot",
                 inputSchema={
                     "type": "object",
@@ -1057,11 +1079,13 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_list_tags",
+                title="List All Tags",
                 description="List all tags used across memory slots",
                 inputSchema={"type": "object", "additionalProperties": False},
             ),
             Tool(
                 name="memcord_group",
+                title="Manage Slot Groups",
                 description="Manage memory slot groups/folders",
                 inputSchema={
                     "type": "object",
@@ -1083,6 +1107,7 @@ class ChatMemoryServer:
             # Import & Integration Tools
             Tool(
                 name="memcord_import",
+                title="Import Content",
                 description="Import content from various sources into memory slots",
                 inputSchema={
                     "type": "object",
@@ -1114,6 +1139,7 @@ class ChatMemoryServer:
             # Storage Optimization Tools
             Tool(
                 name="memcord_compress",
+                title="Compress Memory Slot",
                 description="Compress memory slot content to save storage space",
                 inputSchema={
                     "type": "object",
@@ -1141,6 +1167,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_archive",
+                title="Archive or Restore Memory Slot",
                 description="Archive or restore memory slots for long-term storage",
                 inputSchema={
                     "type": "object",
@@ -1169,6 +1196,7 @@ class ChatMemoryServer:
             # Export & Sharing Tools
             Tool(
                 name="memcord_export",
+                title="Export Memory Slot",
                 description="Export memory slot as MCP file resource",
                 inputSchema={
                     "type": "object",
@@ -1186,6 +1214,7 @@ class ChatMemoryServer:
             ),
             Tool(
                 name="memcord_share",
+                title="Share Memory Slot",
                 description="Generate shareable memory files in multiple formats",
                 inputSchema={
                     "type": "object",

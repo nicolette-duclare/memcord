@@ -47,9 +47,10 @@ class TestInstallShScript:
 
     def test_script_clones_correct_repo(self, script_content):
         """Test that install.sh clones from the correct GitHub repository."""
-        assert "git clone https://github.com/ukkit/memcord.git" in script_content, (
-            "install.sh should clone from correct GitHub URL"
+        assert "https://github.com/ukkit/memcord.git" in script_content, (
+            "install.sh should reference correct GitHub URL"
         )
+        assert "git clone" in script_content, "install.sh should clone the repository"
 
     def test_script_checks_existing_data(self, script_content):
         """Test that install.sh checks for existing memory_slots data."""
@@ -97,6 +98,23 @@ class TestInstallShScript:
             "install.sh should mention .antigravity/mcp_config.json"
         )
 
+    def test_script_detects_existing_install(self, script_content):
+        """Test that install.sh detects an existing checkout and updates it instead of re-cloning."""
+        assert 'MODE="update"' in script_content, "install.sh should support an update mode"
+        assert "memcord/.git" in script_content, "install.sh should detect an existing memcord clone"
+        assert "git pull --ff-only" in script_content, "install.sh should fast-forward pull on update"
+
+    def test_script_refuses_update_with_local_changes(self, script_content):
+        """Test that install.sh aborts an update rather than clobbering local modifications."""
+        assert "git status --porcelain" in script_content, "install.sh should check for local modifications"
+        assert "update aborted" in script_content, "install.sh should abort the update when local changes exist"
+
+    def test_script_reuses_existing_venv(self, script_content):
+        """Test that install.sh reuses an existing virtual environment on update."""
+        assert 'if [ -d ".venv" ]' in script_content, (
+            "install.sh should check for an existing .venv before creating one"
+        )
+
 
 # =============================================================================
 # Test install.ps1 (PowerShell Installation Script) - 12 tests
@@ -129,9 +147,10 @@ class TestInstallPs1Script:
 
     def test_script_clones_correct_repo(self, script_content):
         """Test that install.ps1 clones from the correct GitHub repository."""
-        assert "git clone https://github.com/ukkit/memcord.git" in script_content, (
-            "install.ps1 should clone from correct GitHub URL"
+        assert "https://github.com/ukkit/memcord.git" in script_content, (
+            "install.ps1 should reference correct GitHub URL"
         )
+        assert "git clone" in script_content, "install.ps1 should clone the repository"
 
     def test_script_checks_existing_data(self, script_content):
         """Test that install.ps1 checks for existing memory_slots data."""
@@ -182,6 +201,23 @@ class TestInstallPs1Script:
         assert "APPDATA" in script_content, "install.ps1 should reference APPDATA for config location"
         assert "Claude\\claude_desktop_config.json" in script_content, (
             "install.ps1 should show Claude Desktop config path"
+        )
+
+    def test_script_detects_existing_install(self, script_content):
+        """Test that install.ps1 detects an existing checkout and updates it instead of re-cloning."""
+        assert '$MODE = "update"' in script_content, "install.ps1 should support an update mode"
+        assert "memcord/.git" in script_content, "install.ps1 should detect an existing memcord clone"
+        assert "git pull --ff-only" in script_content, "install.ps1 should fast-forward pull on update"
+
+    def test_script_refuses_update_with_local_changes(self, script_content):
+        """Test that install.ps1 aborts an update rather than clobbering local modifications."""
+        assert "git status --porcelain" in script_content, "install.ps1 should check for local modifications"
+        assert "update aborted" in script_content, "install.ps1 should abort the update when local changes exist"
+
+    def test_script_reuses_existing_venv(self, script_content):
+        """Test that install.ps1 reuses an existing virtual environment on update."""
+        assert 'if (Test-Path ".venv")' in script_content, (
+            "install.ps1 should check for an existing .venv before creating one"
         )
 
 

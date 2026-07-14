@@ -393,10 +393,30 @@ These resources update automatically when memory slots change and can be accesse
 
 ## Update Existing Installation
 
+### Recommended: Re-run the installer
+
+`install.sh` / `install.ps1` detect an existing installation and update it in place — pulling the latest changes (fast-forward only), reusing your existing virtual environment, upgrading dependencies, and regenerating MCP configs. Your `memory_slots/` data and generated config files are untouched.
+
+Run this from the directory containing your `memcord` checkout (or from inside it):
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://github.com/ukkit/memcord/raw/main/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://github.com/ukkit/memcord/raw/main/install.ps1 | iex
+```
+
+If tracked files have local modifications, the update aborts rather than overwriting them — commit or stash your changes first.
+
+### Manual update
+
 ```bash
 cd /path/to/memcord
 git pull
-uv pip install -e .
+uv pip install -e . --upgrade
 uv run python scripts/generate-config.py  # Regenerate configs
 
 # Optional: Enable auto-save hooks

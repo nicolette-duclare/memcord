@@ -19,6 +19,7 @@ class OptimizedSchemas:
             # Core Tools - Ultra Optimized
             Tool(
                 name="memcord_name",
+                title="Create or Select Memory Slot",
                 description="Create/select slot",
                 inputSchema={
                     "type": "object",
@@ -28,6 +29,7 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_use",
+                title="Activate Memory Slot",
                 description="Use existing slot (reads from .memcord if no slot specified)",
                 inputSchema={
                     "type": "object",
@@ -36,6 +38,7 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_save",
+                title="Save to Memory Slot",
                 description="Save text",
                 inputSchema={
                     "type": "object",
@@ -45,6 +48,7 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_auto_save",
+                title="Auto-Save to Memory",
                 description="Save text to default slot (no setup needed)",
                 inputSchema={
                     "type": "object",
@@ -55,11 +59,13 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_read",
+                title="Read Memory Slot",
                 description="Read content",
                 inputSchema={"type": "object", "properties": {"slot_name": {"type": "string"}}},
             ),
             Tool(
                 name="memcord_save_progress",
+                title="Save Progress Summary",
                 description="Summarize & save",
                 inputSchema={
                     "type": "object",
@@ -71,10 +77,16 @@ class OptimizedSchemas:
                     "required": ["chat_text"],
                 },
             ),
-            Tool(name="memcord_list", description="List slots", inputSchema={"type": "object", "properties": {}}),
+            Tool(
+                name="memcord_list",
+                title="List Memory Slots",
+                description="List slots",
+                inputSchema={"type": "object", "additionalProperties": False},
+            ),
             # Search Tools - Ultra Optimized
             Tool(
                 name="memcord_search",
+                title="Search Memory Slots",
                 description="Search slots",
                 inputSchema={
                     "type": "object",
@@ -90,6 +102,7 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_query",
+                title="Query Memory (Natural Language)",
                 description="Ask questions",
                 inputSchema={
                     "type": "object",
@@ -100,9 +113,15 @@ class OptimizedSchemas:
                     "required": ["question"],
                 },
             ),
-            Tool(name="memcord_zero", description="No-save mode", inputSchema={"type": "object", "properties": {}}),
+            Tool(
+                name="memcord_zero",
+                title="Activate Zero Mode",
+                description="No-save mode",
+                inputSchema={"type": "object", "additionalProperties": False},
+            ),
             Tool(
                 name="memcord_select_entry",
+                title="Select Memory Entry",
                 description="Select entry",
                 inputSchema={
                     "type": "object",
@@ -118,6 +137,7 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_merge",
+                title="Merge Memory Slots",
                 description="Merge slots",
                 inputSchema={
                     "type": "object",
@@ -134,6 +154,7 @@ class OptimizedSchemas:
             # System Tools - Ultra Optimized
             Tool(
                 name="memcord_status",
+                title="System Status",
                 description="System status",
                 inputSchema={
                     "type": "object",
@@ -142,6 +163,7 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_metrics",
+                title="Performance Metrics",
                 description="System metrics",
                 inputSchema={
                     "type": "object",
@@ -153,6 +175,7 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_logs",
+                title="Operation Logs",
                 description="System logs",
                 inputSchema={
                     "type": "object",
@@ -166,6 +189,7 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_diagnostics",
+                title="Run Diagnostics",
                 description="Run diagnostics",
                 inputSchema={
                     "type": "object",
@@ -187,6 +211,7 @@ class OptimizedSchemas:
             # Organization Tools - Ultra Optimized
             Tool(
                 name="memcord_tag",
+                title="Manage Slot Tags",
                 description="Manage tags",
                 inputSchema={
                     "type": "object",
@@ -198,9 +223,15 @@ class OptimizedSchemas:
                     "required": ["action"],
                 },
             ),
-            Tool(name="memcord_list_tags", description="List tags", inputSchema={"type": "object", "properties": {}}),
+            Tool(
+                name="memcord_list_tags",
+                title="List All Tags",
+                description="List tags",
+                inputSchema={"type": "object", "additionalProperties": False},
+            ),
             Tool(
                 name="memcord_group",
+                title="Manage Slot Groups",
                 description="Manage groups",
                 inputSchema={
                     "type": "object",
@@ -215,6 +246,7 @@ class OptimizedSchemas:
             # Import & Storage - Ultra Optimized
             Tool(
                 name="memcord_import",
+                title="Import Content",
                 description="Import content",
                 inputSchema={
                     "type": "object",
@@ -234,6 +266,7 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_compress",
+                title="Compress Memory Slot",
                 description="Compress content",
                 inputSchema={
                     "type": "object",
@@ -251,6 +284,7 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_archive",
+                title="Archive or Restore Memory Slot",
                 description="Archive/restore",
                 inputSchema={
                     "type": "object",
@@ -266,6 +300,7 @@ class OptimizedSchemas:
             # Export - Ultra Optimized
             Tool(
                 name="memcord_export",
+                title="Export Memory Slot",
                 description="Export slot",
                 inputSchema={
                     "type": "object",
@@ -279,6 +314,7 @@ class OptimizedSchemas:
             ),
             Tool(
                 name="memcord_share",
+                title="Share Memory Slot",
                 description="Share slot",
                 inputSchema={
                     "type": "object",

@@ -1,5 +1,24 @@
 # Version History
 
+## v4.3.0 - MCP Compliance and Self-Updating Installers
+
+```text
+  - install.sh / install.ps1 now detect an existing checkout (in the current
+    directory or a memcord/ subdirectory) and update it in place instead of
+    failing on git clone: fast-forward-only git pull, aborting safely if
+    tracked files have local modifications, reusing the existing virtual
+    environment, and upgrading dependencies.
+  - docs/installation.md and README.md document the new update flow, with
+    the manual git pull steps kept as a fallback.
+  - Added title fields (SDK-supported, spec-recommended) to all 53 Tool
+    definitions across server.py and optimized_schemas.py.
+  - Fixed optimized_schemas.py: memcord_list, memcord_zero, and
+    memcord_list_tags still used the old {"properties": {}} empty-object
+    schema instead of additionalProperties: false, missed by the v3.4.1
+    MCP compliance pass.
+  - Bumped the mcp SDK floor to >=1.28.1.
+```
+
 ## v4.2.0 - Storage Links Registry
 
 ```text
