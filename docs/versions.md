@@ -1,5 +1,21 @@
 # Version History
 
+## v4.3.6 - Drop Unused pandas and python-magic Dependencies
+
+```text
+  - python-magic was declared as a dependency but never imported anywhere
+    in src/memcord -- removed as dead weight (it also needs a separately
+    installed libmagic on Windows, so it never actually worked there).
+  - pandas was pulled in solely for a single pd.read_csv() call in the
+    CSV/TSV importer, dragging in numpy, python-dateutil, and tzdata for
+    functionality the standard library's csv module already covers.
+    Replaced with a small csv.reader-based table formatter; import output
+    is unchanged.
+  - Net effect: a fresh install pulls fewer packages, with no feature
+    loss -- CSV/TSV import still produces the same readable table plus
+    row/column metadata.
+```
+
 ## v4.3.5 - Fix Update Runs Falsely Blocked by Installer Self-Modifications
 
 ```text

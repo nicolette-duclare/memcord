@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "memcord"
-version = "4.3.5"
+version = "4.3.6"
 description = "privacy-first, self-hosted MCP server helps you organize chat history, summarize messages, search across past chats with AI — and keeps everything secure and fully under your control."
 authors = [
     {name = "MemCord", email = "memcord@ultrafastidio.us"}
@@ -21,9 +21,7 @@ dependencies = [
     "beautifulsoup4>=4.12.0",
     "pdfplumber>=0.10.0",
     "pypdfium2>=5.0.0",  # Explicitly pin to avoid yanked 4.30.1
-    "pandas>=2.0.0",
     "trafilatura>=1.8.0",
-    "python-magic>=0.4.27",
     "sumy>=0.11.0",  # Default summarizer backend (graph-based, zero model files)
 ]
 
@@ -81,7 +79,6 @@ dependencies = [
     "types-aiofiles>=24.1.0",
     "types-psutil>=6.0.0",
     "types-requests>=2.31.0",
-    "pandas-stubs>=2.0.0",
     "pydantic>=2.0.0",
 ]
 
@@ -217,6 +214,5 @@ dev = [
     "types-aiofiles>=24.1.0",
     "types-psutil>=6.0.0",
     "types-requests>=2.31.0",
-    "pandas-stubs>=2.0.0",
     "pre-commit>=3.8.0",
 ]
