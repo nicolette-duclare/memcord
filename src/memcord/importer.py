@@ -1,6 +1,7 @@
 """Content import system for various file formats and sources."""
 
 import asyncio
+import csv
 import json
 import logging
 from abc import ABC, abstractmethod
@@ -10,7 +11,6 @@ from typing import Any
 from urllib.parse import urlparse
 
 import aiofiles
-import pandas as pd
 import pdfplumber
 import requests
 import trafilatura
@@ -18,8 +18,6 @@ from bs4 import BeautifulSoup
 from pydantic import BaseModel
 
 from .security import InputValidator
-
-HAS_MAGIC = False
 
 logger = logging.getLogger(__name__)
 
@@ -301,18 +299,18 @@ class StructuredDataHandler(ImportHandler):
 
                 # Offload to thread pool to avoid blocking the event loop
                 loop = asyncio.get_running_loop()
-                df = await loop.run_in_executor(None, lambda: pd.read_csv(path, sep=separator))
+                header, rows = await loop.run_in_executor(None, self._read_delimited, path, separator)
 
                 # Convert to readable format
-                content = f"Dataset with {len(df)} rows and {len(df.columns)} columns:\n\n"
-                content += f"Columns: {', '.join(df.columns.tolist())}\n\n"
-                content += df.to_string(index=False)
+                content = f"Dataset with {len(rows)} rows and {len(header)} columns:\n\n"
+                content += f"Columns: {', '.join(header)}\n\n"
+                content += self._format_table(header, rows)
 
                 format_info = {
                     "format": "csv" if extension == ".csv" else "tsv",
-                    "rows": len(df),
-                    "columns": len(df.columns),
-                    "column_names": df.columns.tolist(),
+                    "rows": len(rows),
+                    "columns": len(header),
+                    "column_names": header,
                 }
 
             # Get file stats
@@ -337,6 +335,27 @@ class StructuredDataHandler(ImportHandler):
         except Exception as e:
             logger.error(f"Error importing structured data {source}: {e}")
             return ImportResult(success=False, error=f"Failed to import structured data: {str(e)}")
+
+    @staticmethod
+    def _read_delimited(path: Path, separator: str) -> tuple[list[str], list[list[str]]]:
+        """Read a delimited text file, returning its header row and data rows."""
+        with open(path, newline="", encoding="utf-8") as f:
+            rows = list(csv.reader(f, delimiter=separator))
+        if not rows:
+            return [], []
+        return rows[0], rows[1:]
+
+    @staticmethod
+    def _format_table(header: list[str], rows: list[list[str]]) -> str:
+        """Render rows as a simple space-aligned table, without a pandas dependency."""
+        widths = [len(col) for col in header]
+        for row in rows:
+            for i, cell in enumerate(row[: len(widths)]):
+                widths[i] = max(widths[i], len(cell))
+        lines = ["  ".join(col.ljust(widths[i]) for i, col in enumerate(header))]
+        for row in rows:
+            lines.append("  ".join(cell.ljust(widths[i]) for i, cell in enumerate(row[: len(widths)])))
+        return "\n".join(lines)
 
 
 class ContentImporter:

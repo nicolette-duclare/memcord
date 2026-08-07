@@ -130,7 +130,7 @@ memcord_import source="/data/export.csv" slot_name="analytics_data" description=
 memcord_import source="/config/settings.json" slot_name="config_backup"
 ```
 - JSON: Pretty-prints with proper indentation and structure detection
-- CSV/TSV: Uses `pandas` for robust parsing and data conversion
+- CSV/TSV: Parses and converts to a readable table format
 - Includes schema information (columns, row counts, data types)
 - Converts tabular data to human-readable format
 

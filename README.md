@@ -1,6 +1,6 @@
 <div align="center">
   <img src="assets/image/memcord_1024.png" width="256">
-  <h3>MEMCORD v4.3.5 (mcp server)</h3>
+  <h3>MEMCORD v4.3.6 (mcp server)</h3>
   <p>This privacy-first, self-hosted MCP server helps you organize chat history, summarize messages, search across past chats with AI — and keeps everything secure and fully under your control.</p>
 </div>
 
@@ -18,7 +18,7 @@
 <h2 align="center">Never Lose Context Again</h2>
 <p align="center"><em>Transform your Claude conversations into a searchable, organized knowledge base that grows with you</em></p>
 
-> **[What's new in v4.3.5](docs/versions.md#v435---fix-update-runs-falsely-blocked-by-installer-self-modifications)** — fixes update runs being falsely blocked by "local changes detected" caused by the installer's own README.md/uv.lock writes from a prior run.
+> **[What's new in v4.3.6](docs/versions.md#v436---drop-unused-pandas-and-python-magic-dependencies)** — removes two unnecessary dependencies (`pandas`, `python-magic`) from a fresh install; CSV/TSV import now uses the standard library instead of pandas.
 
 ## Table of Contents
 

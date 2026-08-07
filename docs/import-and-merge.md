@@ -217,7 +217,7 @@ memcord_merge source_slots=["temp1","temp2","temp3"] target_slot="consolidated" 
 ### Structured Data
 - **JSON**: Configuration files, API responses, data exports
 - **CSV/TSV**: Datasets, reports, tabular data
-- **Processing**: `pandas` for robust data handling
+- **Processing**: Standard library `csv` parsing
 - **Features**: Schema detection, row/column statistics
 
 ## Import Strategies
