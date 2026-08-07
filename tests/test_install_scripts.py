@@ -239,6 +239,22 @@ class TestInstallPs1Script:
         assert "[string]$Scope" in script_content, "install.ps1 should declare a -Scope parameter"
         assert "@scopeArgs" in script_content, "install.ps1 should forward scopeArgs to generate-config.py"
 
+    def test_script_validates_scope_manually_not_via_validateset(self, script_content):
+        """Regression test: [ValidateSet] on the $Scope param() breaks the documented
+        `irm ... | iex` usage -- Invoke-Expression binds $Scope to an empty string before
+        any argument is supplied, and ValidateSet rejects that empty default immediately,
+        crashing even the plain no-flags install command. Validation must happen manually
+        in the script body instead, where an empty/unset $Scope is accepted (it means
+        "let generate-config.py auto-detect")."""
+        assert "[ValidateSet(" not in script_content, (
+            "install.ps1 must not attach [ValidateSet] to the $Scope param -- it breaks "
+            "under `irm ... | iex` (Invoke-Expression binds an empty default before the "
+            "attribute is checked, rejecting even the plain no-args install command)"
+        )
+        assert '-notin @("project", "user")' in script_content, (
+            "install.ps1 should validate -Scope manually in the script body instead"
+        )
+
     def test_script_offers_command_picker_on_fresh_install(self, script_content):
         """Test that install.ps1 auto-invokes the command picker on a fresh, interactive install only."""
         assert "IsInputRedirected" in script_content, "install.ps1 should gate the picker on an interactive session"
