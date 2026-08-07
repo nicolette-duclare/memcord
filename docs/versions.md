@@ -1,5 +1,21 @@
 # Version History
 
+## v4.3.5 - Fix Update Runs Falsely Blocked by Installer Self-Modifications
+
+```text
+  - Every install run rewrites README.md (path substitution) and, via uv
+    run's implicit lock sync, sometimes uv.lock -- both git-tracked files.
+    The next update run's local-modifications safety check then saw those
+    as "local changes" and refused to proceed, requiring a manual
+    stash/reset before the installer could run again.
+  - Fixed: install.sh/install.ps1 now discard just those two files' diffs
+    (git checkout -- README.md uv.lock) before the dirty-check runs, so
+    the installer's own prior output never blocks an update -- any other
+    tracked file the user actually edited still correctly blocks it.
+  - Added --frozen to the uv run invocations so uv stops touching uv.lock
+    in the first place, rather than only cleaning up after the fact.
+```
+
 ## v4.3.4 - Quieter Installer Output
 
 ```text
