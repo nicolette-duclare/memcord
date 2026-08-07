@@ -1,5 +1,30 @@
 # Version History
 
+## v4.3.4 - Quieter Installer Output
+
+```text
+  - Emoji trimmed to three semantic markers (checkmark/cross/warning) across
+    install.sh, install.ps1, and utilities/protect_data.py; all decorative
+    emoji removed.
+  - Installers now pass --backup-only alongside --force to protect_data.py,
+    skipping its CRITICAL DATA LOSS WARNING banner and DATA PROTECTION
+    OPTIONS listing entirely -- the installer always creates the backup
+    unconditionally, so displaying alternative options users can't actually
+    choose between was pure noise.
+  - protect_data.py's inline recovery instructions replaced with a short
+    pointer to docs/data-protection-guide.md#recovery-after-data-loss, which
+    already documents the same restore steps in full.
+  - Fixed a real gap: the entire slash-commands block (not just the
+    interactive picker) was gated on a single "fresh install" check, so
+    update runs -- the normal path for anyone who already has memcord
+    installed -- never mentioned --manage-commands at all. The hint now
+    always prints; only the interactive auto-invoke stays limited to fresh,
+    interactive installs.
+  - install.ps1 now sets $env:PYTHONUTF8 before invoking child Python
+    processes, so a legacy-codepage Windows console can't turn a successful
+    backup into a false "aborted" failure via a print() encoding crash.
+```
+
 ## v4.3.3 - Fix install.ps1 Crash on Plain `irm | iex`
 
 ```text

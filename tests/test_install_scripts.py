@@ -56,13 +56,17 @@ class TestInstallShScript:
     def test_script_checks_existing_data(self, script_content):
         """Test that install.sh checks for existing memory_slots data."""
         assert "memory_slots" in script_content, "install.sh should check for existing memory_slots directory"
-        assert "EXISTING MEMORY DATA DETECTED" in script_content, "install.sh should warn about existing data"
+        assert "Existing memory data found" in script_content, "install.sh should warn about existing data"
 
     def test_script_runs_data_protection(self, script_content):
         """Test that install.sh runs data protection script when needed."""
         assert "utilities/protect_data.py" in script_content, "install.sh should reference data protection script"
         assert "python3 utilities/protect_data.py" in script_content, (
             "install.sh should run data protection with python3"
+        )
+        assert "--backup-only" in script_content, (
+            "install.sh should pass --backup-only so protect_data.py skips its warning/options display "
+            "(the installer always creates a backup, so that display adds no value)"
         )
 
     def test_script_creates_venv(self, script_content):
@@ -112,9 +116,7 @@ class TestInstallShScript:
 
     def test_script_reuses_existing_venv(self, script_content):
         """Test that install.sh reuses an existing virtual environment on update."""
-        assert 'if [ -d ".venv" ]' in script_content, (
-            "install.sh should check for an existing .venv before creating one"
-        )
+        assert '-d ".venv"' in script_content, "install.sh should check for an existing .venv before creating one"
 
     def test_script_passes_scope_arg_through(self, script_content):
         """Test that install.sh accepts and forwards --scope to generate-config.py."""
@@ -127,6 +129,15 @@ class TestInstallShScript:
         assert "--manage-commands" in script_content, "install.sh should invoke --manage-commands"
         assert '"$MODE" != "update"' in script_content, (
             "install.sh should only auto-invoke the picker on fresh installs"
+        )
+
+    def test_script_shows_command_hint_on_update_too(self, script_content):
+        """Regression test: update runs must still mention the command picker (a hint, not
+        an auto-prompt) -- the whole slash-commands block used to be wrapped in a single
+        `[ "$MODE" != "update" ]` guard, so update runs got no mention of it at all, not
+        even the manual-command hint."""
+        assert "choose which memcord-* commands to install globally" in script_content, (
+            "install.sh should show a hint about --manage-commands on update runs too"
         )
 
 
@@ -169,7 +180,7 @@ class TestInstallPs1Script:
     def test_script_checks_existing_data(self, script_content):
         """Test that install.ps1 checks for existing memory_slots data."""
         assert "memory_slots" in script_content, "install.ps1 should check for existing memory_slots directory"
-        assert "EXISTING MEMORY DATA DETECTED" in script_content, "install.ps1 should warn about existing data"
+        assert "Existing memory data found" in script_content, "install.ps1 should warn about existing data"
 
     def test_script_runs_data_protection(self, script_content):
         """Test that install.ps1 runs data protection script when needed."""
@@ -177,6 +188,18 @@ class TestInstallPs1Script:
         assert "python utilities/protect_data.py" in script_content, (
             "install.ps1 should run data protection with python"
         )
+        assert "--backup-only" in script_content, (
+            "install.ps1 should pass --backup-only so protect_data.py skips its warning/options display "
+            "(the installer always creates a backup, so that display adds no value)"
+        )
+
+    def test_script_forces_python_utf8(self, script_content):
+        """Test that install.ps1 forces UTF-8 for child Python processes.
+
+        On a legacy (non-UTF-8) Windows console codepage, protect_data.py's status
+        emoji can raise UnicodeEncodeError after the real work (e.g. the backup)
+        already succeeded, turning a successful step into a false abort."""
+        assert "PYTHONUTF8" in script_content, "install.ps1 should set $env:PYTHONUTF8 for child Python processes"
 
     def test_script_checks_uv_installed(self, script_content):
         """Test that install.ps1 checks if uv is installed."""
@@ -230,7 +253,7 @@ class TestInstallPs1Script:
 
     def test_script_reuses_existing_venv(self, script_content):
         """Test that install.ps1 reuses an existing virtual environment on update."""
-        assert 'if (Test-Path ".venv")' in script_content, (
+        assert 'Test-Path ".venv"' in script_content, (
             "install.ps1 should check for an existing .venv before creating one"
         )
 
@@ -261,6 +284,15 @@ class TestInstallPs1Script:
         assert "--manage-commands" in script_content, "install.ps1 should invoke --manage-commands"
         assert '$MODE -ne "update"' in script_content, (
             "install.ps1 should only auto-invoke the picker on fresh installs"
+        )
+
+    def test_script_shows_command_hint_on_update_too(self, script_content):
+        """Regression test: update runs must still mention the command picker (a hint, not
+        an auto-prompt) -- the whole slash-commands block used to be wrapped in a single
+        `$MODE -ne "update"` guard, so update runs got no mention of it at all, not even
+        the manual-command hint."""
+        assert "choose which memcord-* commands to install globally" in script_content, (
+            "install.ps1 should show a hint about --manage-commands on update runs too"
         )
 
 
