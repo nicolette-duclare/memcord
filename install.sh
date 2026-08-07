@@ -35,10 +35,9 @@ else
 fi
 
 if [ "$MODE" = "update" ]; then
-    echo "🔄 Updating existing Memcord installation..."
-    echo "📍 Installation path: $MEMCORD_PATH"
+    echo "Updating existing Memcord installation..."
+    echo "Installation path: $MEMCORD_PATH"
 
-    echo "🔍 Checking for local modifications..."
     if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
         echo "❌ Local changes detected in tracked files - update aborted to avoid overwriting them."
         echo "   Review with: git -C \"$MEMCORD_PATH\" status"
@@ -46,36 +45,33 @@ if [ "$MODE" = "update" ]; then
         exit 1
     fi
 
-    echo "⬇️  Pulling latest changes..."
+    echo "Pulling latest changes..."
     git pull --ff-only
 else
-    echo "🚀 Installing Memcord..."
+    echo "Installing Memcord..."
 
     # Clone the repository
-    echo "📦 Cloning repository..."
+    echo "Cloning repository..."
     git clone "$REPO_URL"
     cd memcord
 
     # Get the absolute path
     MEMCORD_PATH=$(pwd)
-    echo "📍 Installation path: $MEMCORD_PATH"
+    echo "Installation path: $MEMCORD_PATH"
 fi
 
 # Data protection check
-echo "🛡️  Checking for existing memory data..."
 if [ -d "memory_slots" ] && [ "$(ls -A memory_slots 2>/dev/null)" ]; then
-    echo "⚠️  EXISTING MEMORY DATA DETECTED!"
-    echo "📊 Running data protection script..."
+    echo "Existing memory data found - creating automatic backup..."
 
     if [ -f "utilities/protect_data.py" ]; then
-        python3 utilities/protect_data.py --force
+        python3 utilities/protect_data.py --force --backup-only
         if [ $? -ne 0 ]; then
             echo "❌ Data protection failed - installation aborted!"
             exit 1
         fi
     else
-        echo "🚨 Data protection script not found!"
-        echo "⚠️  Manual backup recommended:"
+        echo "⚠️  Data protection script not found. Manual backup recommended:"
         echo "   cp -r memory_slots ~/backup_memory_slots_$(date +%Y%m%d)"
         read -p "Continue anyway? [y/N]: " -n 1 -r
         echo
@@ -84,25 +80,21 @@ if [ -d "memory_slots" ] && [ "$(ls -A memory_slots 2>/dev/null)" ]; then
             exit 1
         fi
     fi
-else
-    echo "✅ No existing memory data found - proceeding safely."
 fi
 
 # Create (or reuse) the virtual environment
-if [ -d ".venv" ]; then
-    echo "🐍 Using existing virtual environment..."
-else
-    echo "🐍 Setting up Python virtual environment..."
+if [ ! -d ".venv" ]; then
+    echo "Setting up Python virtual environment..."
     uv venv
 fi
 source .venv/bin/activate
 
 # Install/upgrade the package
-echo "📋 Installing memcord package..."
+echo "Installing memcord package..."
 uv pip install -e . --upgrade
 
 # Generate MCP configuration files using Python script
-echo "📝 Generating MCP configuration files..."
+echo "Generating MCP configuration files..."
 if [ -f "scripts/generate-config.py" ]; then
     uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" "${SCOPE_ARGS[@]}"
     if [ $? -ne 0 ]; then
@@ -118,26 +110,24 @@ else
 fi
 
 # Update README.md with actual path (for documentation purposes)
-echo "📝 Updating README.md with installation path..."
 if [ -f "README.md" ]; then
     # Replace both old placeholder format and new placeholder format
     sed -e "s|</path/to/memcord>|$MEMCORD_PATH|g" \
         -e "s|{{MEMCORD_PATH}}|$MEMCORD_PATH|g" \
         README.md > README.md.tmp && mv README.md.tmp README.md
-    echo "✅ Updated README.md with path: $MEMCORD_PATH"
 else
     echo "⚠️  README.md not found in repository"
 fi
 
 echo ""
 if [ "$MODE" = "update" ]; then
-    echo "✨ Update complete!"
+    echo "✅ Update complete!"
 else
-    echo "✨ Installation complete!"
+    echo "✅ Installation complete!"
 fi
-echo "📂 Memcord installed at: $MEMCORD_PATH"
+echo "Memcord installed at: $MEMCORD_PATH"
 echo ""
-echo "🔧 Next steps:"
+echo "Next steps:"
 if [ "$MODE" = "update" ]; then
     echo "   1. Restart Claude Desktop / your MCP client to load the updated server"
     echo "   2. In Claude Code, run: claude mcp list"
@@ -147,23 +137,21 @@ else
     echo "   3. In Claude Code, run: claude mcp list"
 fi
 echo ""
-echo "📚 Configuration files generated:"
+echo "Configuration files generated:"
 echo "   - Claude Code: project .mcp.json, or global ~/.claude.json if no .mcp.json existed yet"
 echo "     (pass --scope project or --scope user to choose explicitly)"
 echo "   - claude_desktop_config.json (Claude Desktop)"
 echo "   - .vscode/mcp.json (VSCode/GitHub Copilot)"
 echo "   - .antigravity/mcp_config.json (Google Antigravity IDE)"
 echo ""
-echo "💡 Optional: Enable auto-save hooks for Claude Code:"
+echo "Optional: Enable auto-save hooks for Claude Code:"
 echo "   uv run python scripts/generate-config.py --install-hooks"
 
-if [ "$MODE" != "update" ]; then
-    echo ""
-    if [ -t 0 ]; then
-        echo "🧩 Slash commands:"
-        uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" --manage-commands
-    else
-        echo "🧩 Slash commands: run this later to install memcord-* commands globally:"
-        echo "   uv run python scripts/generate-config.py --install-path \"$MEMCORD_PATH\" --manage-commands"
-    fi
+echo ""
+if [ -t 0 ] && [ "$MODE" != "update" ]; then
+    echo "Slash commands:"
+    uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" --manage-commands
+else
+    echo "Slash commands: run this to choose which memcord-* commands to install globally:"
+    echo "   uv run python scripts/generate-config.py --install-path \"$MEMCORD_PATH\" --manage-commands"
 fi

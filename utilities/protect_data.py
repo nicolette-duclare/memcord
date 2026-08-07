@@ -86,10 +86,6 @@ def display_warning(slot_count: int, total_size: int, slot_names: list[str]):
     """Display data loss warning to user."""
     size_mb = total_size / (1024 * 1024)
 
-    print("🚨" * 50)
-    print("🚨 CRITICAL DATA LOSS WARNING 🚨")
-    print("🚨" * 50)
-    print()
     print("EXISTING MEMORY DATA DETECTED:")
     print(f"  • {slot_count} memory slots found")
     print(f"  • Total size: {size_mb:.1f} MB")
@@ -97,19 +93,17 @@ def display_warning(slot_count: int, total_size: int, slot_names: list[str]):
     if len(slot_names) > 10:
         print(f"    ... and {len(slot_names) - 10} more")
     print()
-    print("⚠️  DANGER: Installing/upgrading memcord may cause PERMANENT data loss!")
-    print("⚠️  ALL your project history and session data could be destroyed!")
+    print("⚠️  Installing/upgrading memcord may cause data loss without a backup.")
     print()
 
 
 def display_protection_options():
     """Display data protection options."""
-    print("🛡️  DATA PROTECTION OPTIONS:")
+    print("DATA PROTECTION OPTIONS:")
     print()
     print("1. AUTOMATIC BACKUP (RECOMMENDED)")
     print("   • This script will create a complete backup")
     print("   • Backup will be stored in 'emergency_backups' directory")
-    print("   • You can restore manually if data is lost")
     print()
     print("2. MANUAL BACKUP")
     print("   • Copy the entire 'memory_slots' directory to a safe location")
@@ -123,21 +117,9 @@ def display_protection_options():
 
 
 def display_recovery_instructions(backup_path: str):
-    """Display recovery instructions."""
-    print("🔧 RECOVERY INSTRUCTIONS (if data is lost):")
-    print()
-    print("1. AUTOMATIC RESTORE:")
-    print(f"   cp -r {backup_path}/* memory_slots/")
-    print()
-    print("2. MANUAL RESTORE:")
-    print(f"   • Your backup is located at: {backup_path}")
-    print("   • Copy all files from backup to memory_slots directory")
-    print("   • Restart memcord server")
-    print()
-    print("3. VERIFY RESTORATION:")
-    print("   • Use memcord_list to verify all slots are restored")
-    print("   • Check that data content is intact")
-    print()
+    """Point to the full recovery guide instead of reprinting it inline."""
+    print(f"Backup: {backup_path}")
+    print("Recovery instructions: docs/data-protection-guide.md#recovery-after-data-loss")
 
 
 def main():
@@ -152,17 +134,15 @@ def main():
 
     args = parser.parse_args()
 
-    print("🔍 Checking for existing memory data...")
     data_exists, slot_count, total_size, slot_names = detect_memory_data(args.memory_dir)
 
     if not data_exists:
         print("✅ No existing memory data found - installation should be safe.")
-        print("ℹ️  You can proceed with installation normally.")
         return 0
 
     if args.check_only:
-        print(f"📊 Found {slot_count} memory slots ({total_size / (1024 * 1024):.1f} MB)")
-        print(f"📂 Location: {Path(args.memory_dir).absolute()}")
+        print(f"Found {slot_count} memory slots ({total_size / (1024 * 1024):.1f} MB)")
+        print(f"Location: {Path(args.memory_dir).absolute()}")
         print("⚠️  Data protection recommended before installation!")
         return 0
 
@@ -180,44 +160,39 @@ def main():
                 break
             elif choice in ["n", "no"]:
                 print("⚠️  Proceeding without backup - data loss risk remains!")
-                print("🔧 Consider using memcord_export or memcord_archive tools instead.")
+                print("Consider using memcord_export or memcord_archive tools instead.")
                 return 1
             elif choice in ["c", "cancel"]:
-                print("✋ Installation cancelled - your data is safe.")
-                print("💡 Create backups when ready, then retry installation.")
+                print("Installation cancelled - your data is safe.")
+                print("Create backups when ready, then retry installation.")
                 return 2
             else:
                 print("Please enter 'y', 'n', or 'c'")
 
     # Create backup
-    print("🛡️  Creating emergency backup...")
     try:
         backup_path = create_emergency_backup(args.memory_dir, args.backup_dir)
         print("✅ Backup created successfully!")
-        print(f"📂 Backup location: {backup_path}")
-        print()
 
         # Verify backup
         backup_data_exists, backup_slot_count, backup_size, _ = detect_memory_data(backup_path)
         if backup_data_exists and backup_slot_count == slot_count:
-            print("✅ Backup verification passed - all data backed up correctly.")
+            print("✅ Backup verified.")
         else:
             print("⚠️  Backup verification failed - please check manually!")
             return 3
 
-        print()
         display_recovery_instructions(backup_path)
 
         if not args.backup_only:
-            print("🚀 You can now proceed with memcord installation.")
-            print("🛡️  Your data is protected and can be restored if needed.")
+            print("You can now proceed with memcord installation.")
 
         return 0
 
     except Exception as e:
         print(f"❌ Failed to create backup: {e}")
-        print("🚨 CRITICAL: Installation should NOT proceed without backup!")
-        print("💡 Try manual backup: cp -r memory_slots ~/backup_memory_slots")
+        print("Installation should NOT proceed without a backup.")
+        print("Try manual backup: cp -r memory_slots ~/backup_memory_slots")
         return 4
 
 
