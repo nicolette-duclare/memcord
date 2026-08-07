@@ -47,6 +47,13 @@ if ($MODE -eq "update") {
     Write-Host "Updating existing Memcord installation..." -ForegroundColor Cyan
     Write-Host "Installation path: $MEMCORD_PATH" -ForegroundColor Green
 
+    # README.md and uv.lock are rewritten by the installer itself on every run
+    # (path substitution, and uv's implicit lock sync) -- discard those specific
+    # files before checking for local modifications, so the installer's own
+    # prior output never blocks a later update. Any other tracked file the user
+    # actually edited still correctly blocks below.
+    git checkout -- README.md uv.lock 2>$null
+
     $dirty = git status --porcelain --untracked-files=no
     if ($dirty) {
         Write-Host "❌ Local changes detected in tracked files - update aborted to avoid overwriting them." -ForegroundColor Red
@@ -125,7 +132,7 @@ Write-Host "Generating MCP configuration files..." -ForegroundColor Yellow
 if (Test-Path "scripts/generate-config.py") {
     $scopeArgs = @()
     if ($Scope) { $scopeArgs = @("--scope", $Scope) }
-    uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" --platform windows @scopeArgs
+    uv run --frozen python scripts/generate-config.py --install-path "$MEMCORD_PATH" --platform windows @scopeArgs
     if ($LASTEXITCODE -ne 0) {
         Write-Host "⚠️  Config generation had issues, but installation can continue." -ForegroundColor Yellow
     }
@@ -189,7 +196,7 @@ Write-Host "   uv run python scripts/generate-config.py --install-hooks" -Foregr
 Write-Host ""
 if ((-not [Console]::IsInputRedirected) -and $MODE -ne "update") {
     Write-Host "Slash commands:" -ForegroundColor Yellow
-    uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" --manage-commands
+    uv run --frozen python scripts/generate-config.py --install-path "$MEMCORD_PATH" --manage-commands
 } else {
     Write-Host "Slash commands: run this to choose which memcord-* commands to install globally:" -ForegroundColor Yellow
     Write-Host "   uv run python scripts/generate-config.py --install-path `"$MEMCORD_PATH`" --manage-commands" -ForegroundColor Gray

@@ -1,6 +1,6 @@
 <div align="center">
   <img src="assets/image/memcord_1024.png" width="256">
-  <h3>MEMCORD v4.3.4 (mcp server)</h3>
+  <h3>MEMCORD v4.3.5 (mcp server)</h3>
   <p>This privacy-first, self-hosted MCP server helps you organize chat history, summarize messages, search across past chats with AI — and keeps everything secure and fully under your control.</p>
 </div>
 
@@ -18,7 +18,7 @@
 <h2 align="center">Never Lose Context Again</h2>
 <p align="center"><em>Transform your Claude conversations into a searchable, organized knowledge base that grows with you</em></p>
 
-> **[What's new in v4.3.4](docs/versions.md#v434---quieter-installer-output)** — installer output trimmed to essential emoji only, the automatic backup step no longer shows a wall of warning text, and update runs now mention the slash-command picker instead of staying silent about it.
+> **[What's new in v4.3.5](docs/versions.md#v435---fix-update-runs-falsely-blocked-by-installer-self-modifications)** — fixes update runs being falsely blocked by "local changes detected" caused by the installer's own README.md/uv.lock writes from a prior run.
 
 ## Table of Contents
 

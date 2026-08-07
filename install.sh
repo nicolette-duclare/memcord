@@ -38,6 +38,13 @@ if [ "$MODE" = "update" ]; then
     echo "Updating existing Memcord installation..."
     echo "Installation path: $MEMCORD_PATH"
 
+    # README.md and uv.lock are rewritten by the installer itself on every run
+    # (path substitution, and uv's implicit lock sync) -- discard those specific
+    # files before checking for local modifications, so the installer's own
+    # prior output never blocks a later update. Any other tracked file the user
+    # actually edited still correctly blocks below.
+    git checkout -- README.md uv.lock 2>/dev/null || true
+
     if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
         echo "❌ Local changes detected in tracked files - update aborted to avoid overwriting them."
         echo "   Review with: git -C \"$MEMCORD_PATH\" status"
@@ -96,7 +103,7 @@ uv pip install -e . --upgrade
 # Generate MCP configuration files using Python script
 echo "Generating MCP configuration files..."
 if [ -f "scripts/generate-config.py" ]; then
-    uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" "${SCOPE_ARGS[@]}"
+    uv run --frozen python scripts/generate-config.py --install-path "$MEMCORD_PATH" "${SCOPE_ARGS[@]}"
     if [ $? -ne 0 ]; then
         echo "⚠️  Config generation had issues, but installation can continue."
     fi
@@ -150,7 +157,7 @@ echo "   uv run python scripts/generate-config.py --install-hooks"
 echo ""
 if [ -t 0 ] && [ "$MODE" != "update" ]; then
     echo "Slash commands:"
-    uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" --manage-commands
+    uv run --frozen python scripts/generate-config.py --install-path "$MEMCORD_PATH" --manage-commands
 else
     echo "Slash commands: run this to choose which memcord-* commands to install globally:"
     echo "   uv run python scripts/generate-config.py --install-path \"$MEMCORD_PATH\" --manage-commands"

@@ -114,6 +114,24 @@ class TestInstallShScript:
         assert "git status --porcelain" in script_content, "install.sh should check for local modifications"
         assert "update aborted" in script_content, "install.sh should abort the update when local changes exist"
 
+    def test_script_discards_self_inflicted_diffs_before_update_check(self, script_content):
+        """Regression test: README.md (path substitution) and uv.lock (uv's implicit lock
+        sync) are rewritten by the installer itself on every run, so a prior run's output
+        was tripping the local-modifications check on the next update. Those two files
+        must be reset before the dirty-check runs, and the reset must come first."""
+        checkout_idx = script_content.find("git checkout -- README.md uv.lock")
+        status_idx = script_content.find("git status --porcelain")
+        assert checkout_idx != -1, "install.sh should discard README.md/uv.lock diffs before checking for local changes"
+        assert checkout_idx < status_idx, "the checkout must happen before the local-modifications check"
+
+    def test_script_uses_frozen_uv_run(self, script_content):
+        """Regression test: uv run without --frozen can re-sync/re-lock, rewriting uv.lock
+        as a side effect of simply generating config -- causing the same self-inflicted
+        'local changes' problem on the next update."""
+        assert "uv run --frozen" in script_content, (
+            "install.sh should pass --frozen to uv run to avoid touching uv.lock"
+        )
+
     def test_script_reuses_existing_venv(self, script_content):
         """Test that install.sh reuses an existing virtual environment on update."""
         assert '-d ".venv"' in script_content, "install.sh should check for an existing .venv before creating one"
@@ -250,6 +268,26 @@ class TestInstallPs1Script:
         """Test that install.ps1 aborts an update rather than clobbering local modifications."""
         assert "git status --porcelain" in script_content, "install.ps1 should check for local modifications"
         assert "update aborted" in script_content, "install.ps1 should abort the update when local changes exist"
+
+    def test_script_discards_self_inflicted_diffs_before_update_check(self, script_content):
+        """Regression test: README.md (path substitution) and uv.lock (uv's implicit lock
+        sync) are rewritten by the installer itself on every run, so a prior run's output
+        was tripping the local-modifications check on the next update. Those two files
+        must be reset before the dirty-check runs, and the reset must come first."""
+        checkout_idx = script_content.find("git checkout -- README.md uv.lock")
+        status_idx = script_content.find("git status --porcelain")
+        assert checkout_idx != -1, (
+            "install.ps1 should discard README.md/uv.lock diffs before checking for local changes"
+        )
+        assert checkout_idx < status_idx, "the checkout must happen before the local-modifications check"
+
+    def test_script_uses_frozen_uv_run(self, script_content):
+        """Regression test: uv run without --frozen can re-sync/re-lock, rewriting uv.lock
+        as a side effect of simply generating config -- causing the same self-inflicted
+        'local changes' problem on the next update."""
+        assert "uv run --frozen" in script_content, (
+            "install.ps1 should pass --frozen to uv run to avoid touching uv.lock"
+        )
 
     def test_script_reuses_existing_venv(self, script_content):
         """Test that install.ps1 reuses an existing virtual environment on update."""
