@@ -1,6 +1,13 @@
 # Memcord Installation Script for Windows
 # Run with: irm https://github.com/ukkit/memcord/raw/main/install.ps1 | iex
 # Or: PowerShell -ExecutionPolicy Bypass -File install.ps1
+# To pass -Scope through the piped form:
+#   & ([scriptblock]::Create((irm https://github.com/ukkit/memcord/raw/main/install.ps1))) -Scope project
+
+param(
+    [ValidateSet("project", "user")]
+    [string]$Scope
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -110,7 +117,9 @@ uv pip install -e . --upgrade
 # Generate MCP configuration files using Python script
 Write-Host "📝 Generating MCP configuration files..." -ForegroundColor Yellow
 if (Test-Path "scripts/generate-config.py") {
-    uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" --platform windows
+    $scopeArgs = @()
+    if ($Scope) { $scopeArgs = @("--scope", $Scope) }
+    uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" --platform windows @scopeArgs
     if ($LASTEXITCODE -ne 0) {
         Write-Host "⚠️  Config generation had issues, but installation can continue." -ForegroundColor Yellow
     }
@@ -164,13 +173,25 @@ if ($MODE -eq "update") {
 }
 Write-Host ""
 Write-Host "📚 Configuration files generated:" -ForegroundColor Yellow
-Write-Host "   - .mcp.json (Claude Code)" -ForegroundColor Gray
+Write-Host "   - Claude Code: project .mcp.json, or global ~/.claude.json if no .mcp.json existed yet" -ForegroundColor Gray
+Write-Host "     (pass -Scope project or -Scope user to choose explicitly)" -ForegroundColor Gray
 Write-Host "   - claude_desktop_config.json (Claude Desktop)" -ForegroundColor Gray
 Write-Host "   - .vscode\mcp.json (VSCode/GitHub Copilot)" -ForegroundColor Gray
 Write-Host "   - .antigravity\mcp_config.json (Google Antigravity IDE)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "💡 Optional: Enable auto-save hooks for Claude Code:" -ForegroundColor Yellow
 Write-Host "   uv run python scripts/generate-config.py --install-hooks" -ForegroundColor Gray
+
+if ($MODE -ne "update") {
+    Write-Host ""
+    if (-not [Console]::IsInputRedirected) {
+        Write-Host "🧩 Slash commands:" -ForegroundColor Yellow
+        uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" --manage-commands
+    } else {
+        Write-Host "🧩 Slash commands: run this later to install memcord-* commands globally:" -ForegroundColor Yellow
+        Write-Host "   uv run python scripts/generate-config.py --install-path `"$MEMCORD_PATH`" --manage-commands" -ForegroundColor Gray
+    }
+}
 Write-Host ""
 Write-Host "📋 Claude Desktop config location:" -ForegroundColor Yellow
 Write-Host "   Copy claude_desktop_config.json to:" -ForegroundColor Gray

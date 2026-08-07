@@ -4,6 +4,24 @@ set -e
 
 REPO_URL="https://github.com/ukkit/memcord.git"
 
+# Parse CLI args (works with: curl ... | bash -s -- --scope project)
+SCOPE_ARGS=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --scope)
+            SCOPE_ARGS=(--scope "$2")
+            shift 2
+            ;;
+        --scope=*)
+            SCOPE_ARGS=(--scope "${1#*=}")
+            shift
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
 # Detect whether we're updating an existing install or doing a fresh one.
 if [ -f "pyproject.toml" ] && grep -q '^name = "memcord"' pyproject.toml && [ -d ".git" ]; then
     MODE="update"
@@ -86,7 +104,7 @@ uv pip install -e . --upgrade
 # Generate MCP configuration files using Python script
 echo "📝 Generating MCP configuration files..."
 if [ -f "scripts/generate-config.py" ]; then
-    uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH"
+    uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" "${SCOPE_ARGS[@]}"
     if [ $? -ne 0 ]; then
         echo "⚠️  Config generation had issues, but installation can continue."
     fi
@@ -130,10 +148,22 @@ else
 fi
 echo ""
 echo "📚 Configuration files generated:"
-echo "   - .mcp.json (Claude Code)"
+echo "   - Claude Code: project .mcp.json, or global ~/.claude.json if no .mcp.json existed yet"
+echo "     (pass --scope project or --scope user to choose explicitly)"
 echo "   - claude_desktop_config.json (Claude Desktop)"
 echo "   - .vscode/mcp.json (VSCode/GitHub Copilot)"
 echo "   - .antigravity/mcp_config.json (Google Antigravity IDE)"
 echo ""
 echo "💡 Optional: Enable auto-save hooks for Claude Code:"
 echo "   uv run python scripts/generate-config.py --install-hooks"
+
+if [ "$MODE" != "update" ]; then
+    echo ""
+    if [ -t 0 ]; then
+        echo "🧩 Slash commands:"
+        uv run python scripts/generate-config.py --install-path "$MEMCORD_PATH" --manage-commands
+    else
+        echo "🧩 Slash commands: run this later to install memcord-* commands globally:"
+        echo "   uv run python scripts/generate-config.py --install-path \"$MEMCORD_PATH\" --manage-commands"
+    fi
+fi

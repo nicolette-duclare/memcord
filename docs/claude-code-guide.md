@@ -188,120 +188,27 @@ memcord_name "backend/api_design"
 
 ## Custom Commands
 
-Create project-specific slash commands for common memory operations.
-
-### Setup Commands Directory
-
-```bash
-# Project-specific commands (recommended for teams)
-mkdir -p .claude/commands
-
-# User-wide commands (personal use)
-mkdir -p ~/.claude/commands
-```
-
-### Essential Memory Commands
-
-Create these files in your `.claude/commands/` directory:
-
-**`.claude/commands/memory-save.md`**
-```markdown
----
-description: Save current conversation to memory
----
-
-Save the current conversation to memory slot: $ARGUMENTS
-
-First use memcord_name to set the memory slot, then use memcord_save_progress to save our conversation with auto-summarization.
-```
-
-**`.claude/commands/memory-search.md`**
-```markdown
----
-description: Search across all project memories
----
-
-Search for: $ARGUMENTS
-
-Use memcord_search to find information across all memory slots in this project.
-```
-
-**`.claude/commands/memory-ask.md`**
-```markdown
----
-description: Ask questions about project memories
----
-
-Answer this question about project memories: $ARGUMENTS
-
-Use memcord_query to process this natural language question across all project memory slots.
-```
-
-**`.claude/commands/memory-import.md`**
-```markdown
----
-description: Import project documentation into memory
----
-
-Import documentation: $ARGUMENTS
-
-Use memcord_import to bring in README files, API docs, or other project documentation.
-```
-
-**`.claude/commands/memory-organize.md`**
-```markdown
----
-description: Organize memories with tags and groups
----
-
-Organize current memory with: $ARGUMENTS
-
-Use memcord_tag and memcord_group tools to organize the current memory slot.
-```
-
-### Advanced Team Commands
-
-**`.claude/commands/memory-sync.md`**
-```markdown
----
-description: Share memory snapshot with team
----
-
-Create shareable memory export: $ARGUMENTS
-
-Use memcord_export to create shareable memory files for team collaboration.
-```
-
-**`.claude/commands/memory-review.md`**
-```markdown
----
-description: Review recent project decisions
----
-
-Review recent decisions about: $ARGUMENTS
-
-Use memcord_query to find and summarize recent decisions and discussions.
-```
+Memcord ships 17 ready-made slash commands in `.claude/commands/memcord-*.md` — already
+available at project scope the moment your Claude Code cwd is the memcord checkout (the
+directory is git-tracked, no setup needed). See
+**[Installation Guide — Installing Commands Globally](installation.md#installing-commands-globally)**
+for the full command table and how to make them available from *any* project directory
+via `~/.claude/commands/`.
 
 ### Command Usage
 
-After creating commands, use them in Claude Code:
-
 ```bash
-# Save current discussion about API changes
-/memory-save api_changes
+# Save current discussion, auto-summarized
+/memcord-save-progress api_changes
 
 # Search for previous discussions
-/memory-search "authentication implementation"
+/memcord-search "authentication implementation"
 
 # Ask about project decisions
-/memory-ask "What consensus did we reach on the database schema?"
+/memcord-query "What consensus did we reach on the database schema?"
 
 # Import project documentation
-/memory-import README.md
-
-# Organize current memory
-/memory-organize "add tags: database, schema, decisions"
+/memcord-import README.md
 ```
 
 ## Development Workflows

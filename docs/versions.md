@@ -1,5 +1,50 @@
 # Version History
 
+## v4.3.2 - Global Slash-Command Install
+
+```text
+  - scripts/generate-config.py gains --manage-commands (interactive picker) and
+    --commands all|none|name1,name2 (non-interactive) to install the 17
+    memcord-*.md slash commands into ~/.claude/commands/, making them available
+    from any project directory instead of only inside the memcord checkout.
+  - Both flags funnel through apply_command_selection(), an idempotent,
+    ownership-safe reconciliation function keyed on exact filename identity
+    against the shipped command manifest -- foreign files at the target
+    directory are never touched. Deselecting an unedited command deletes it;
+    deselecting one that's been hand-edited renames it to <name>.bak instead of
+    discarding the edit.
+  - install.sh/install.ps1 auto-invoke the picker at the end of a fresh install,
+    gated on stdin being a real terminal so curl|bash/irm|iex never hangs on
+    piped input -- it prints the manual command instead. Update runs never
+    auto-prompt.
+  - Rewrote the long-stale "Custom Claude Code Commands" sections in
+    docs/installation.md and docs/claude-code-guide.md, which described a
+    fictional memory-*.md example set that didn't match any real shipped file.
+```
+
+## v4.3.1 - Global-Scope Install by Default
+
+```text
+  - Fresh installs now register memcord globally (~/.claude.json) by default,
+    so it's available in every project without per-project setup. Pass
+    --scope project to scripts/generate-config.py (or --scope/-Scope to
+    install.sh/install.ps1) to keep writing a project-level .mcp.json for
+    team sharing via version control instead.
+  - Re-running the installer to update an existing checkout auto-detects and
+    preserves whichever scope is already in use (project scope if a
+    .mcp.json already exists, global otherwise) -- updating never silently
+    switches an existing team-shared install to global.
+  - The global-scope merge touches only the mcpServers key in ~/.claude.json,
+    leaving unrelated Claude Code state untouched, and takes a rolling
+    ~/.claude.json.bak backup before writing.
+  - save_config() now writes atomically (temp file + replace) instead of
+    writing the target file directly, for all generated configs.
+  - Fixed a latent crash in the VSCode config step when .vscode/ doesn't
+    already exist (masked in this repo only because .vscode/ is git-tracked).
+  - README.md and docs/installation.md document the new default and how to
+    switch an existing project-scoped install to global.
+```
+
 ## v4.3.0 - MCP Compliance and Self-Updating Installers
 
 ```text

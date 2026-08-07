@@ -108,7 +108,21 @@ Memcord exposes two tools in OpenClaw: `memcord_auto_save` (write) and `memcord_
 
 ### Claude Code CLI (Recommended) ⭐
 
-MemCord includes a `.mcp.json` configuration file for seamless Claude Code integration. This enables project-level configuration and team sharing via version control.
+`scripts/generate-config.py` (and the `install.sh`/`install.ps1` installers that call it)
+register memcord with Claude Code automatically. By default it registers **globally**
+(`~/.claude.json`), so memcord is available in every project without per-project setup.
+Pass `--scope project` to instead write a project-level `.mcp.json` next to the memcord
+checkout — useful for team sharing via version control. Re-running the installer to
+update an existing checkout auto-detects and preserves whichever scope you're already
+using.
+
+```bash
+# Global (default): available in every project
+uv run python scripts/generate-config.py
+
+# Project-level: shared with your team via .mcp.json in version control
+uv run python scripts/generate-config.py --scope project
+```
 
 #### Project-Level Installation (Team Sharing)
 
@@ -125,7 +139,7 @@ claude mcp install .
 
 #### Manual Claude Code Configuration
 
-If you prefer manual configuration or need custom settings, run these from any directory — replace `/path/to/memcord` with the absolute path to your memcord installation:
+The installer's `--scope` flag (above) covers most cases. If you prefer manual configuration via the `claude` CLI directly, or need custom settings, run these from any directory — replace `/path/to/memcord` with the absolute path to your memcord installation:
 
 **macOS / Linux:**
 ```bash
@@ -287,98 +301,61 @@ python -m memcord.server
 
 ## Custom Claude Code Commands
 
-You can create custom slash commands for common memory operations.
+Memcord ships 17 ready-made slash commands in `.claude/commands/memcord-*.md`. This
+directory is git-tracked, so anyone who clones the repo already has all 17 available at
+**project scope** the moment their Claude Code cwd is the memcord checkout — no setup
+needed there.
 
-### Setup Custom Commands
+### Installing Commands Globally
+
+To use the commands from *any* project directory (not just the memcord checkout),
+install them into `~/.claude/commands/`:
 
 ```bash
-# Create commands directory (project-specific)
-mkdir -p .claude/commands
-
-# Or create user-wide commands
-mkdir -p ~/.claude/commands
+uv run python scripts/generate-config.py --manage-commands   # interactive picker
+uv run python scripts/generate-config.py --commands all      # non-interactive: install all
+uv run python scripts/generate-config.py --commands none     # non-interactive: remove all
+uv run python scripts/generate-config.py --commands memcord-save,memcord-read
 ```
 
-### Example Commands
+Fresh `install.sh`/`install.ps1` runs prompt for this automatically at the end (skipped
+when non-interactive, e.g. `curl | bash`, printing the manual command instead). Re-run
+`--manage-commands` any time to add or remove commands — it's idempotent and diffs
+against what's currently installed. Only memcord's own command files (exact filename
+matches against the 17 shipped names) are ever added or removed; anything else already
+in `~/.claude/commands/` is left alone. If you've hand-edited an installed command file
+and later deselect it, memcord renames it to `<name>.md.bak` instead of deleting it.
 
-Create these files in your `.claude/commands/` directory:
+### Available Commands
 
-**`.claude/commands/memory-save.md`**
-```markdown
----
-description: Save current conversation to memory
----
-
-Save the current conversation to memory slot: $ARGUMENTS
-
-Use the memcord_name tool to set the memory slot, then use memcord_save to save our conversation.
-```
-
-**`.claude/commands/memory-read.md`**
-```markdown
----
-description: Read from memory slot
----
-
-Read from memory slot: $ARGUMENTS
-
-Use the memcord_read tool to retrieve the content from the specified memory slot.
-```
-
-**`.claude/commands/memory-list.md`**
-```markdown
----
-description: List all memory slots
----
-
-List all available memory slots.
-
-Use the memcord_list tool to show all memory slots with their metadata.
-```
-
-**`.claude/commands/memory-search.md`**
-```markdown
----
-description: Search across all memory slots
----
-
-Search for: $ARGUMENTS
-
-Use the memcord_search tool to find information across all memory slots.
-```
-
-**`.claude/commands/memory-ask.md`**
-```markdown
----
-description: Ask questions about your memories
----
-
-Answer this question about my memories: $ARGUMENTS
-
-Use the memcord_query tool to process this natural language question.
-```
-
-**`.claude/commands/memory-organize.md`**
-```markdown
----
-description: Add tags to current memory slot
----
-
-Add tags to current memory slot: $ARGUMENTS
-
-Use the memcord_tag tool with action 'add' to organize the current memory slot.
-```
+| Command | Description |
+|---|---|
+| `memcord-clear` | Save memory and clear context |
+| `memcord-close` | Deactivate memory slot and end session |
+| `memcord-import` | Import content from files/URLs |
+| `memcord-init` | Initialize a project directory with a memory slot |
+| `memcord-list` | List all memory slots |
+| `memcord-merge` | Merge multiple memory slots with duplicate detection |
+| `memcord-name` | Create or select a memory slot |
+| `memcord-query` | Ask questions about your memories |
+| `memcord-read` | Read from memory slot |
+| `memcord-save` | Save current conversation to memory |
+| `memcord-save-progress` | Auto-summarize and save conversation progress |
+| `memcord-search` | Search across all memory slots |
+| `memcord-select-entry` | Select specific memory entry by time or index |
+| `memcord-tag` | Add, remove, or list tags for memory organization |
+| `memcord-unbind` | Remove .memcord binding from a project directory |
+| `memcord-use` | Activate an existing memory slot |
+| `memcord-zero` | Activate zero mode - prevent memory saving |
 
 ### Usage
 
-After creating the commands, use them in Claude Code:
-
 ```
-/project:memory-save project_discussion
-/project:memory-read project_discussion
-/project:memory-list
-/project:search-memory API changes
-/project:query-memory "What decisions were made last week?"
+/memcord-save project_discussion
+/memcord-read project_discussion
+/memcord-list
+/memcord-search API changes
+/memcord-query "What decisions were made last week?"
 ```
 
 ## MCP File Resources
@@ -395,18 +372,24 @@ These resources update automatically when memory slots change and can be accesse
 
 ### Recommended: Re-run the installer
 
-`install.sh` / `install.ps1` detect an existing installation and update it in place — pulling the latest changes (fast-forward only), reusing your existing virtual environment, upgrading dependencies, and regenerating MCP configs. Your `memory_slots/` data and generated config files are untouched.
+`install.sh` / `install.ps1` detect an existing installation and update it in place — pulling the latest changes (fast-forward only), reusing your existing virtual environment, upgrading dependencies, and regenerating MCP configs. Your `memory_slots/` data and generated config files are untouched. The Claude Code scope (`project` vs `user`) is auto-detected from whether a `.mcp.json` already exists in the checkout, so updating never silently switches an existing team-shared install to global scope.
 
 Run this from the directory containing your `memcord` checkout (or from inside it):
 
 **macOS / Linux:**
 ```bash
 curl -fsSL https://github.com/ukkit/memcord/raw/main/install.sh | bash
+
+# Pass --scope to override auto-detection:
+curl -fsSL https://github.com/ukkit/memcord/raw/main/install.sh | bash -s -- --scope project
 ```
 
 **Windows (PowerShell):**
 ```powershell
 irm https://github.com/ukkit/memcord/raw/main/install.ps1 | iex
+
+# Pass -Scope to override auto-detection:
+& ([scriptblock]::Create((irm https://github.com/ukkit/memcord/raw/main/install.ps1))) -Scope project
 ```
 
 If tracked files have local modifications, the update aborts rather than overwriting them — commit or stash your changes first.

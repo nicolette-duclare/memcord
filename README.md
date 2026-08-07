@@ -1,6 +1,6 @@
 <div align="center">
   <img src="assets/image/memcord_1024.png" width="256">
-  <h3>MEMCORD v4.3.0 (mcp server)</h3>
+  <h3>MEMCORD v4.3.2 (mcp server)</h3>
   <p>This privacy-first, self-hosted MCP server helps you organize chat history, summarize messages, search across past chats with AI — and keeps everything secure and fully under your control.</p>
 </div>
 
@@ -18,7 +18,7 @@
 <h2 align="center">Never Lose Context Again</h2>
 <p align="center"><em>Transform your Claude conversations into a searchable, organized knowledge base that grows with you</em></p>
 
-> **[What's new in v4.3.0](docs/versions.md#v430---mcp-compliance-and-self-updating-installers)** — `install.sh`/`install.ps1` now update an existing installation in place, and all MCP tools carry spec-recommended `title` fields.
+> **[What's new in v4.3.2](docs/versions.md#v432---global-slash-command-install)** — memcord's 17 slash commands can now be installed globally (`~/.claude/commands/`) via an interactive picker, with fresh installs prompting automatically.
 
 ## Table of Contents
 
@@ -112,6 +112,28 @@ uv run python scripts/generate-config.py --install-hooks
 </details>
 
 The `--install-hooks` flag is idempotent — it merges into existing `.claude/settings.json` without overwriting other settings or hooks.
+
+### Switching an Existing Install to Global Scope
+
+Fresh installs register memcord **globally** (`~/.claude.json`) by default — available in every project. If you have an older install that's still project-scoped (a local `.mcp.json`), switch it explicitly — re-running the updater alone won't do this for you, since it auto-detects and preserves an existing project-scoped setup on purpose:
+
+```bash
+cd /path/to/memcord
+uv run python scripts/generate-config.py --scope user
+```
+
+Verify from a *different* project directory: `claude mcp list` should now show memcord. The original `.mcp.json` is left in place and still works (harmless, just redundant) — delete it only if you want that directory to stop pinning its own local copy instead of falling through to the global one.
+
+### Installing Slash Commands Globally
+
+The 17 `memcord-*` slash commands ship in `.claude/commands/` and are already usable from inside the memcord checkout the moment you clone it. To use them from *any* project directory, install them globally into `~/.claude/commands/`:
+
+```bash
+uv run python scripts/generate-config.py --manage-commands   # interactive picker
+uv run python scripts/generate-config.py --commands all      # non-interactive: install all
+```
+
+Fresh installs prompt for this automatically (skipped when non-interactive, e.g. `curl | bash`). Re-run anytime to change your selection — only memcord's own command files are ever added or removed.
 
 ## Using Memcord
 

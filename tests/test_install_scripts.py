@@ -8,6 +8,7 @@ These tests verify that:
 """
 
 import json
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -115,6 +116,19 @@ class TestInstallShScript:
             "install.sh should check for an existing .venv before creating one"
         )
 
+    def test_script_passes_scope_arg_through(self, script_content):
+        """Test that install.sh accepts and forwards --scope to generate-config.py."""
+        assert "SCOPE_ARGS" in script_content, "install.sh should collect a --scope argument"
+        assert '"${SCOPE_ARGS[@]}"' in script_content, "install.sh should forward SCOPE_ARGS to generate-config.py"
+
+    def test_script_offers_command_picker_on_fresh_install(self, script_content):
+        """Test that install.sh auto-invokes the command picker on a fresh, interactive install only."""
+        assert "[ -t 0 ]" in script_content, "install.sh should gate the picker on stdin being a real terminal"
+        assert "--manage-commands" in script_content, "install.sh should invoke --manage-commands"
+        assert '"$MODE" != "update"' in script_content, (
+            "install.sh should only auto-invoke the picker on fresh installs"
+        )
+
 
 # =============================================================================
 # Test install.ps1 (PowerShell Installation Script) - 12 tests
@@ -218,6 +232,19 @@ class TestInstallPs1Script:
         """Test that install.ps1 reuses an existing virtual environment on update."""
         assert 'if (Test-Path ".venv")' in script_content, (
             "install.ps1 should check for an existing .venv before creating one"
+        )
+
+    def test_script_passes_scope_arg_through(self, script_content):
+        """Test that install.ps1 accepts and forwards -Scope to generate-config.py."""
+        assert "[string]$Scope" in script_content, "install.ps1 should declare a -Scope parameter"
+        assert "@scopeArgs" in script_content, "install.ps1 should forward scopeArgs to generate-config.py"
+
+    def test_script_offers_command_picker_on_fresh_install(self, script_content):
+        """Test that install.ps1 auto-invokes the command picker on a fresh, interactive install only."""
+        assert "IsInputRedirected" in script_content, "install.ps1 should gate the picker on an interactive session"
+        assert "--manage-commands" in script_content, "install.ps1 should invoke --manage-commands"
+        assert '$MODE -ne "update"' in script_content, (
+            "install.ps1 should only auto-invoke the picker on fresh installs"
         )
 
 
@@ -398,6 +425,223 @@ class TestGenerateConfigScript:
         finally:
             sys.path.pop(0)
 
+    def test_save_config_is_atomic_no_tmp_leftover(self):
+        """Test that save_config writes via a temp file and leaves no .tmp behind on success."""
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location("generate_config", "scripts/generate-config.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_path = Path(tmpdir) / "test_config.json"
+                result = module.save_config({"test": "value"}, output_path, dry_run=False)
+
+                assert result is True
+                assert output_path.exists()
+                assert not output_path.with_name(output_path.name + ".tmp").exists()
+        finally:
+            sys.path.pop(0)
+
+    def test_save_config_cleans_up_tmp_on_failure(self):
+        """Test that a failed write doesn't leave a stray .tmp file or a partial target."""
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location("generate_config", "scripts/generate-config.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_path = Path(tmpdir) / "test_config.json"
+                # Sets aren't JSON-serializable, so json.dump raises mid-write.
+                result = module.save_config({"bad": {1, 2, 3}}, output_path, dry_run=False)
+
+                assert result is False
+                assert not output_path.exists()
+                assert not output_path.with_name(output_path.name + ".tmp").exists()
+        finally:
+            sys.path.pop(0)
+
+    def test_get_claude_code_user_config_path_is_home_claude_json(self):
+        """Test that the global Claude Code config path is ~/.claude.json."""
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location("generate_config", "scripts/generate-config.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            assert module.get_claude_code_user_config_path() == Path.home() / ".claude.json"
+        finally:
+            sys.path.pop(0)
+
+    def test_backup_file_noop_when_source_missing(self):
+        """Test that backup_file does nothing if there's no existing file to back up."""
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location("generate_config", "scripts/generate-config.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                target = Path(tmpdir) / "missing.json"
+                module.backup_file(target, dry_run=False)
+                assert not target.with_name(target.name + ".bak").exists()
+        finally:
+            sys.path.pop(0)
+
+    def test_backup_file_creates_backup_of_existing_file(self):
+        """Test that backup_file copies the current contents before a merge overwrites them."""
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location("generate_config", "scripts/generate-config.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                target = Path(tmpdir) / "existing.json"
+                target.write_text('{"original": true}', encoding="utf-8")
+
+                module.backup_file(target, dry_run=False)
+
+                backup = target.with_name(target.name + ".bak")
+                assert backup.exists()
+                assert json.loads(backup.read_text(encoding="utf-8")) == {"original": True}
+        finally:
+            sys.path.pop(0)
+
+    def test_backup_file_dry_run_does_not_copy(self):
+        """Test that backup_file makes no changes in dry-run mode."""
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location("generate_config", "scripts/generate-config.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                target = Path(tmpdir) / "existing.json"
+                target.write_text('{"original": true}', encoding="utf-8")
+
+                module.backup_file(target, dry_run=True)
+
+                assert not target.with_name(target.name + ".bak").exists()
+        finally:
+            sys.path.pop(0)
+
+    def test_merge_mcp_servers_preserves_unrelated_claude_json_keys(self):
+        """Test that merging into a ~/.claude.json-shaped object only touches mcpServers."""
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location("generate_config", "scripts/generate-config.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            existing = {
+                "oauthAccount": {"emailAddress": "user@example.com"},
+                "mcpServers": {"other-server": {"command": "other"}},
+                "theme": "dark",
+                "projects": {"/some/path": {"foo": "bar"}},
+            }
+            new_servers = {"mcpServers": {"memcord": {"command": "uv"}}}
+
+            result = module.merge_mcp_servers(existing, new_servers)
+
+            assert result["oauthAccount"] == {"emailAddress": "user@example.com"}
+            assert result["theme"] == "dark"
+            assert result["projects"] == {"/some/path": {"foo": "bar"}}
+            assert "other-server" in result["mcpServers"]
+            assert "memcord" in result["mcpServers"]
+        finally:
+            sys.path.pop(0)
+
+    def _isolated_memcord_dir(self, tmp_path: Path) -> Path:
+        """Build a throwaway memcord-checkout-shaped dir (real config-templates, nothing else)
+        so generate_configs() never writes into this repo's own .vscode/.antigravity/etc."""
+        fake_memcord = tmp_path / "memcord"
+        shutil.copytree(Path("config-templates"), fake_memcord / "config-templates")
+        return fake_memcord
+
+    def _isolated_memcord_dir_with_commands(self, tmp_path: Path) -> Path:
+        """Like _isolated_memcord_dir, but also copies the real .claude/commands/ (all
+        files, including toon-*.md, to prove the manifest glob excludes it) so command
+        tests never read from or write into this repo's real .claude/commands/."""
+        fake_memcord = self._isolated_memcord_dir(tmp_path)
+        shutil.copytree(Path(".claude/commands"), fake_memcord / ".claude" / "commands")
+        return fake_memcord
+
+    def test_generate_configs_user_scope_merges_into_user_config(self, tmp_path, monkeypatch):
+        """Test that scope='user' merges memcord into the (monkeypatched) global config path."""
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location("generate_config", "scripts/generate-config.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            fake_memcord = self._isolated_memcord_dir(tmp_path)
+            user_config = tmp_path / "fake_home" / ".claude.json"
+            monkeypatch.setattr(module, "get_claude_code_user_config_path", lambda: user_config)
+
+            result = module.generate_configs(
+                memcord_path=fake_memcord,
+                install_claude_desktop=False,
+                install_claude_code=True,
+                scope="user",
+                dry_run=False,
+                verbose=False,
+            )
+
+            assert result is True
+            assert user_config.exists()
+            assert not (fake_memcord / ".mcp.json").exists()
+            data = json.loads(user_config.read_text(encoding="utf-8"))
+            assert "memcord" in data["mcpServers"]
+        finally:
+            sys.path.pop(0)
+
+    def test_generate_configs_project_scope_writes_mcp_json(self, tmp_path):
+        """Test that scope='project' still writes .mcp.json next to the memcord checkout."""
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location("generate_config", "scripts/generate-config.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            fake_memcord = self._isolated_memcord_dir(tmp_path)
+
+            result = module.generate_configs(
+                memcord_path=fake_memcord,
+                install_claude_desktop=False,
+                install_claude_code=True,
+                scope="project",
+                dry_run=False,
+                verbose=False,
+            )
+
+            assert result is True
+            mcp_json = fake_memcord / ".mcp.json"
+            assert mcp_json.exists()
+            data = json.loads(mcp_json.read_text(encoding="utf-8"))
+            assert "memcord" in data["mcpServers"]
+        finally:
+            sys.path.pop(0)
+
     def test_platform_detection_variables_exist(self, script_content):
         """Test that platform detection variables are defined."""
         assert "IS_WINDOWS" in script_content
@@ -414,6 +658,9 @@ class TestGenerateConfigScript:
         assert "--quiet" in script_content
         assert "--no-claude-desktop" in script_content
         assert "--no-claude-code" in script_content
+        assert "--scope" in script_content
+        assert "--manage-commands" in script_content
+        assert "--commands" in script_content
 
     def test_script_handles_all_config_types(self, script_content):
         """Test that the script handles all configuration types."""
@@ -433,6 +680,241 @@ class TestGenerateConfigScript:
         """Test that the script supports colored output."""
         assert "ANSI" in script_content or "color" in script_content
         assert "\\033[" in script_content  # ANSI escape codes
+
+
+# =============================================================================
+# Test scripts/generate-config.py -- global slash-command install
+# =============================================================================
+
+
+class TestManageCommands:
+    """Tests for the memcord-* slash-command picker (--manage-commands / --commands)."""
+
+    def _load_module(self):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("generate_config", "scripts/generate-config.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def _isolated_memcord_dir_with_commands(self, tmp_path: Path) -> Path:
+        """Throwaway memcord-checkout-shaped dir with the real .claude/commands/ copied in
+        (all files, including toon-*.md, to prove the manifest glob excludes it) -- tests
+        never read from or write into this repo's real .claude/commands/."""
+        fake_memcord = tmp_path / "memcord"
+        shutil.copytree(Path(".claude/commands"), fake_memcord / ".claude" / "commands")
+        return fake_memcord
+
+    def test_get_available_commands_excludes_toon_files(self, tmp_path):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            fake_memcord = self._isolated_memcord_dir_with_commands(tmp_path)
+
+            available = module.get_available_commands(fake_memcord)
+
+            names = [p.name for p in available]
+            assert len(names) == 17
+            assert all(n.startswith("memcord-") for n in names)
+            assert not any(n.startswith("toon-") for n in names)
+        finally:
+            sys.path.pop(0)
+
+    def test_get_user_commands_dir_is_home_claude_commands(self):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            assert module.get_user_commands_dir() == Path.home() / ".claude" / "commands"
+        finally:
+            sys.path.pop(0)
+
+    def test_apply_command_selection_installs_selected_files(self, tmp_path):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            fake_memcord = self._isolated_memcord_dir_with_commands(tmp_path)
+            target_dir = tmp_path / "fake_home" / ".claude" / "commands"
+
+            result = module.apply_command_selection(
+                fake_memcord, target_dir, {"memcord-save.md", "memcord-read.md"}, dry_run=False, verbose=False
+            )
+
+            assert result is True
+            installed = {p.name for p in target_dir.iterdir()}
+            assert installed == {"memcord-save.md", "memcord-read.md"}
+            source = fake_memcord / ".claude" / "commands" / "memcord-save.md"
+            assert (target_dir / "memcord-save.md").read_text(encoding="utf-8") == source.read_text(encoding="utf-8")
+        finally:
+            sys.path.pop(0)
+
+    def test_apply_command_selection_ownership_safe_removal(self, tmp_path):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            fake_memcord = self._isolated_memcord_dir_with_commands(tmp_path)
+            target_dir = tmp_path / "fake_home" / ".claude" / "commands"
+            target_dir.mkdir(parents=True)
+
+            module.apply_command_selection(
+                fake_memcord,
+                target_dir,
+                {"memcord-save.md", "memcord-read.md", "memcord-list.md"},
+                dry_run=False,
+                verbose=False,
+            )
+            foreign = target_dir / "memcord-custom-thing.md"
+            foreign.write_text("do not touch", encoding="utf-8")
+
+            result = module.apply_command_selection(fake_memcord, target_dir, set(), dry_run=False, verbose=False)
+
+            assert result is True
+            remaining = {p.name for p in target_dir.iterdir()}
+            assert remaining == {"memcord-custom-thing.md"}
+            assert foreign.read_text(encoding="utf-8") == "do not touch"
+        finally:
+            sys.path.pop(0)
+
+    def test_apply_command_selection_backs_up_edited_file_on_removal(self, tmp_path):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            fake_memcord = self._isolated_memcord_dir_with_commands(tmp_path)
+            target_dir = tmp_path / "fake_home" / ".claude" / "commands"
+
+            module.apply_command_selection(fake_memcord, target_dir, {"memcord-save.md"}, dry_run=False, verbose=False)
+            installed = target_dir / "memcord-save.md"
+            with open(installed, "a", encoding="utf-8") as f:
+                f.write("\nuser edit\n")
+            edited_content = installed.read_text(encoding="utf-8")
+
+            result = module.apply_command_selection(fake_memcord, target_dir, set(), dry_run=False, verbose=False)
+
+            assert result is True
+            assert not installed.exists()
+            backup = target_dir / "memcord-save.md.bak"
+            assert backup.exists()
+            assert backup.read_text(encoding="utf-8") == edited_content
+        finally:
+            sys.path.pop(0)
+
+    def test_apply_command_selection_deletes_unedited_file_on_removal(self, tmp_path):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            fake_memcord = self._isolated_memcord_dir_with_commands(tmp_path)
+            target_dir = tmp_path / "fake_home" / ".claude" / "commands"
+
+            module.apply_command_selection(fake_memcord, target_dir, {"memcord-save.md"}, dry_run=False, verbose=False)
+            result = module.apply_command_selection(fake_memcord, target_dir, set(), dry_run=False, verbose=False)
+
+            assert result is True
+            assert not (target_dir / "memcord-save.md").exists()
+            assert not (target_dir / "memcord-save.md.bak").exists()
+        finally:
+            sys.path.pop(0)
+
+    def test_apply_command_selection_idempotent_reapply(self, tmp_path):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            fake_memcord = self._isolated_memcord_dir_with_commands(tmp_path)
+            target_dir = tmp_path / "fake_home" / ".claude" / "commands"
+            selection = {"memcord-save.md", "memcord-read.md"}
+
+            module.apply_command_selection(fake_memcord, target_dir, selection, dry_run=False, verbose=False)
+            result = module.apply_command_selection(fake_memcord, target_dir, selection, dry_run=False, verbose=False)
+
+            assert result is True
+            assert {p.name for p in target_dir.iterdir()} == selection
+        finally:
+            sys.path.pop(0)
+
+    def test_apply_command_selection_refreshes_stale_owned_content(self, tmp_path):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            fake_memcord = self._isolated_memcord_dir_with_commands(tmp_path)
+            target_dir = tmp_path / "fake_home" / ".claude" / "commands"
+            target_dir.mkdir(parents=True)
+            (target_dir / "memcord-save.md").write_text("stale content", encoding="utf-8")
+
+            module.apply_command_selection(fake_memcord, target_dir, {"memcord-save.md"}, dry_run=False, verbose=False)
+
+            source = fake_memcord / ".claude" / "commands" / "memcord-save.md"
+            assert (target_dir / "memcord-save.md").read_text(encoding="utf-8") == source.read_text(encoding="utf-8")
+        finally:
+            sys.path.pop(0)
+
+    def test_apply_command_selection_dry_run_no_op(self, tmp_path):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            fake_memcord = self._isolated_memcord_dir_with_commands(tmp_path)
+            target_dir = tmp_path / "fake_home" / ".claude" / "commands"
+
+            result = module.apply_command_selection(
+                fake_memcord, target_dir, {"memcord-save.md"}, dry_run=True, verbose=False
+            )
+
+            assert result is True
+            assert not target_dir.exists()
+        finally:
+            sys.path.pop(0)
+
+    def test_manage_commands_interactive_skips_when_not_tty(self, tmp_path, monkeypatch, capsys):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            fake_memcord = self._isolated_memcord_dir_with_commands(tmp_path)
+            target_dir = tmp_path / "fake_home" / ".claude" / "commands"
+            monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+
+            result = module.manage_commands_interactive(fake_memcord, target_dir, dry_run=False)
+
+            assert result is True
+            assert not target_dir.exists()
+            assert "Skipping interactive command picker" in capsys.readouterr().out
+        finally:
+            sys.path.pop(0)
+
+    def test_manage_commands_interactive_handles_eof(self, tmp_path, monkeypatch, capsys):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            fake_memcord = self._isolated_memcord_dir_with_commands(tmp_path)
+            target_dir = tmp_path / "fake_home" / ".claude" / "commands"
+            monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+
+            def raise_eof(*args, **kwargs):
+                raise EOFError
+
+            monkeypatch.setattr("builtins.input", raise_eof)
+
+            result = module.manage_commands_interactive(fake_memcord, target_dir, dry_run=False)
+
+            assert result is True
+            assert not target_dir.exists()
+            assert "Cancelled" in capsys.readouterr().out
+        finally:
+            sys.path.pop(0)
+
+    def test_parse_commands_arg_all_none_and_explicit_list(self):
+        sys.path.insert(0, str(Path("scripts")))
+        try:
+            module = self._load_module()
+            available = ["memcord-save.md", "memcord-read.md", "memcord-list.md"]
+
+            assert module.parse_commands_arg("all", available) == set(available)
+            assert module.parse_commands_arg("none", available) == set()
+            assert module.parse_commands_arg("memcord-save,memcord-read.md", available) == {
+                "memcord-save.md",
+                "memcord-read.md",
+            }
+            with pytest.raises(ValueError):
+                module.parse_commands_arg("not-a-real-command", available)
+        finally:
+            sys.path.pop(0)
 
 
 # =============================================================================
