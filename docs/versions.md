@@ -1,5 +1,24 @@
 # Version History
 
+## v4.3.3 - Fix install.ps1 Crash on Plain `irm | iex`
+
+```text
+  - Fixed install.ps1 crashing on the documented Quick Start command:
+    irm https://github.com/ukkit/memcord/raw/main/install.ps1 | iex
+  - Root cause: [ValidateSet("project", "user")] on the $Scope param()
+    broke under Invoke-Expression -- piping the script into iex binds
+    $Scope to an empty string before any argument is supplied, and
+    ValidateSet rejects that empty default immediately ("The attribute
+    cannot be added because variable Scope with value  would no longer
+    be valid"). This hit every user running the plain install command,
+    not just anyone passing -Scope.
+  - Validation moved into the script body instead: an empty/unset $Scope
+    is accepted (means "let generate-config.py auto-detect"), only a
+    non-empty, unrecognized value is rejected.
+  - Added a regression test asserting [ValidateSet] is never reintroduced
+    on the $Scope param.
+```
+
 ## v4.3.2 - Global Slash-Command Install
 
 ```text

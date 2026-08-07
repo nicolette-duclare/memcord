@@ -1,6 +1,6 @@
 <div align="center">
   <img src="assets/image/memcord_1024.png" width="256">
-  <h3>MEMCORD v4.3.2 (mcp server)</h3>
+  <h3>MEMCORD v4.3.3 (mcp server)</h3>
   <p>This privacy-first, self-hosted MCP server helps you organize chat history, summarize messages, search across past chats with AI — and keeps everything secure and fully under your control.</p>
 </div>
 
@@ -18,7 +18,7 @@
 <h2 align="center">Never Lose Context Again</h2>
 <p align="center"><em>Transform your Claude conversations into a searchable, organized knowledge base that grows with you</em></p>
 
-> **[What's new in v4.3.2](docs/versions.md#v432---global-slash-command-install)** — memcord's 17 slash commands can now be installed globally (`~/.claude/commands/`) via an interactive picker, with fresh installs prompting automatically.
+> **[What's new in v4.3.3](docs/versions.md#v433---fix-installps1-crash-on-plain-irm--iex)** — fixes `install.ps1` crashing on the documented `irm | iex` Quick Start command (a `[ValidateSet]` param attribute broke under piped `Invoke-Expression`).
 
 ## Table of Contents
 

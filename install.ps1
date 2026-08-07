@@ -5,11 +5,21 @@
 #   & ([scriptblock]::Create((irm https://github.com/ukkit/memcord/raw/main/install.ps1))) -Scope project
 
 param(
-    [ValidateSet("project", "user")]
     [string]$Scope
 )
 
 $ErrorActionPreference = "Stop"
+
+# Validated manually rather than via [ValidateSet] on the param() above: when this
+# script is piped into iex (the documented `irm ... | iex` usage), PowerShell binds
+# $Scope to an empty string before any argument is supplied, and a ValidateSet
+# attribute rejects that empty default immediately -- breaking even the plain,
+# no-flags install command. An empty/unset $Scope is valid here (it means "let
+# generate-config.py auto-detect"), so only a non-empty, invalid value is an error.
+if ($Scope -and $Scope -notin @("project", "user")) {
+    Write-Host "❌ Invalid -Scope value: '$Scope' (expected 'project' or 'user')" -ForegroundColor Red
+    exit 1
+}
 
 $REPO_URL = "https://github.com/ukkit/memcord.git"
 
